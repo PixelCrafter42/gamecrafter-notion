@@ -36,7 +36,7 @@ draft: false
 
 ## Cloudflare Pages
 
-- GitHub 仓库：PixelCrafter42/gamecrafter-blog
+- GitHub 仓库：cc4share/gamecrafter-blog
 - 生产分支：main
 - 框架：Astro
 - 构建命令：npm run build
