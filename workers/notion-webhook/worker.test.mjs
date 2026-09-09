@@ -10,7 +10,7 @@ function fixture() {
   env.SYNC_STATE={idFromName:()=>1,get:()=>obj};
   const request=(path,body,signature)=>worker.fetch(new Request('https://worker.test'+path,{method:body===undefined?'GET':'POST',body:body===undefined?undefined:JSON.stringify(body),headers:signature?{'X-Notion-Signature':signature}:{}}),env);
   const event=async(type,id='one')=>{
-    const body={id,type,workspace_id:'space',timestamp:new Date().toISOString()};
+    const body={id,type,workspace_id:'space',entity:{id:'11111111-1111-1111-1111-111111111111',type:'page'},timestamp:new Date().toISOString()};
     return request('/notion/setup',body,'sha256='+createHmac('sha256','verify').update(JSON.stringify(body)).digest('hex'));
   };
   return {storage,env,obj,request,event};
@@ -34,7 +34,7 @@ test('manual button queues deployment and successful live build confirms it',asy
     await f.request('/publish/publish',{});
     assert.ok(f.storage.alarm<=Date.now()+2000);
     const calls=[];
-    globalThis.fetch=async(url)=>{calls.push(url);return Response.json(url.startsWith('https://hook')?{success:true}:{syncedAt:new Date(Date.now()+1000).toISOString()});};
+    globalThis.fetch=async(url)=>{calls.push(url);return Response.json(url.startsWith('https://hook')?{success:true}:{syncedAt:new Date(Date.now()+1000).toISOString(),revision:1});};
     await f.obj.alarm();
     assert.equal((await f.storage.get('state')).awaiting,true);
     await f.obj.alarm();
@@ -50,12 +50,27 @@ test('a newer event during publication verification is not discarded',async()=>{
     globalThis.fetch=async(url)=>{
       if(url.startsWith('https://hook')) return Response.json({success:true});
       const old=await f.storage.get('state');
-      await f.storage.put('state',{...old,target:old.target+10000});
-      return Response.json({syncedAt:new Date(old.target+1).toISOString()});
+      await f.storage.put('state',{...old,target:old.target+10000,revision:old.revision+1});
+      return Response.json({syncedAt:new Date(old.target+1).toISOString(),revision:old.revision});
     };
     await f.obj.alarm();
     assert.equal((await f.storage.get('state')).pending,true);
   } finally {globalThis.fetch=original;}
+});
+test('database button requires a page ID; revision plans retain newer and full requests',async()=>{
+  const f=fixture(),id='22222222-2222-2222-2222-222222222222';
+  assert.equal((await f.request('/article/publish',{})).status,400);
+  assert.equal((await f.request('/article/publish',{data:{id}})).status,200);
+  const plan=since=>worker.fetch(new Request('https://worker.test/plan?since='+since,{headers:{Authorization:'Bearer publish'}}),f.env).then(r=>r.json());
+  assert.equal((await f.request('/plan')).status,404);
+  assert.deepEqual((await plan(0)).targets.map(t=>t.id),[id]);
+  assert.equal((await plan(0)).full,false);
+  await f.request('/publish/publish',{});
+  assert.equal((await plan(1)).full,true);
+  await f.request('/article/publish',{data:{id}});
+  const next=await plan(2);
+  assert.equal(next.revision,3);assert.equal(next.full,false);assert.equal(next.targets.length,1);
+  assert.deepEqual((await plan(3)).targets,[]);
 });
 test('failed hooks stop after four attempts and a new button press recovers',async()=>{
   const f=fixture(),original=globalThis.fetch;

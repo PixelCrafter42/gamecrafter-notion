@@ -2,6 +2,7 @@ const headers = {'Content-Type':'application/json; charset=utf-8','Cache-Control
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers});
 const types=new Set(['page.created','page.properties_updated','page.deleted','page.undeleted','page.moved','data_source.schema_updated']);
 const encode=value=>new TextEncoder().encode(value);
+export const pageId=value=>typeof value==='string' && /^[a-f0-9]{8}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{12}$/i.test(value) ? value.replaceAll('-','').toLowerCase().replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/,'$1-$2-$3-$4-$5') : null;
 
 export async function validSignature(raw,signature,token) {
   if (!/^sha256=[0-9a-f]{64}$/.test(signature || '') || !token) return false;
@@ -16,9 +17,11 @@ export default {
     const setup=env.SETUP_KEY && path==='/setup/'+env.SETUP_KEY;
     const notion=env.SETUP_KEY && path==='/notion/'+env.SETUP_KEY;
     const manual=env.PUBLISH_KEY && path==='/publish/'+env.PUBLISH_KEY;
-    if (path!=='/' && !setup && !notion && !manual) return json({error:'Not found'},404);
-    if ((notion || manual) && request.method!=='POST') return json({error:'Use POST'},405);
-    if ((setup || path==='/') && request.method!=='GET') return json({error:'Use GET'},405);
+    const article=env.PUBLISH_KEY && path==='/article/'+env.PUBLISH_KEY;
+    const plan=path==='/plan' && env.PUBLISH_KEY && request.headers.get('Authorization')==='Bearer '+env.PUBLISH_KEY;
+    if (path!=='/' && !setup && !notion && !manual && !article && !plan) return json({error:'Not found'},404);
+    if ((notion || manual || article) && request.method!=='POST') return json({error:'Use POST'},405);
+    if ((setup || plan || path==='/') && request.method!=='GET') return json({error:'Use GET'},405);
     return env.SYNC_STATE.get(env.SYNC_STATE.idFromName('blog')).fetch(request);
   },
 };
@@ -29,7 +32,13 @@ export class BlogSync {
     const path=new URL(request.url).pathname;
     if (path==='/') {
       const state=await this.ctx.storage.get('state') || {};
-      return json({service:'Notion → gamecrafter.fun',pending:!!state.pending,lastEventAt:state.lastEventAt || null,lastPublishedAt:state.lastPublishedAt || null,error:state.error || null});
+      return json({service:'Notion → gamecrafter.fun',pending:!!state.pending,revision:state.revision || 0,lastReason:state.reason || null,lastEventAt:state.lastEventAt || null,lastPublishedAt:state.lastPublishedAt || null,error:state.error || null});
+    }
+    if (path==='/plan') {
+      const since=Number(new URL(request.url).searchParams.get('since') || 0);
+      const state=await this.ctx.storage.get('state') || {};
+      if (!Number.isSafeInteger(since) || since<0 || since>(state.revision || 0)) return json({error:'Invalid snapshot revision'},409);
+      return json({revision:state.revision || 0,full:(state.fullRevision || 0)>since,targets:Object.entries(state.changes || {}).filter(([,change])=>change.revision>since).map(([id,change])=>({id,...change}))});
     }
     if (path.startsWith('/setup/')) {
       if (await this.ctx.storage.get('locked')) return json({error:'Setup closed'},410);
@@ -39,6 +48,11 @@ export class BlogSync {
     if (raw.length>65536) return json({error:'Request too large'},413);
     if (path.startsWith('/publish/')) { await this.queue('manual'); return json({queued:true}); }
     let payload; try { payload=JSON.parse(raw); } catch { return json({error:'Invalid JSON'},400); }
+    if (path.startsWith('/article/')) {
+      const id=pageId(payload.data?.id);
+      if (!id) return json({error:'Database button must send data.id'},400);
+      await this.queue('article-button',id);return json({queued:true,scope:'article'});
+    }
     const token=await this.ctx.storage.get('verificationToken');
     if (typeof payload.verification_token==='string') {
       if (await this.ctx.storage.get('locked')) return json({error:'Setup closed'},409);
@@ -49,23 +63,28 @@ export class BlogSync {
     if (!await validSignature(raw,request.headers.get('X-Notion-Signature'),token)) return json({error:'Invalid signature'},401);
     if (payload.workspace_id!==this.env.WORKSPACE_ID) return json({error:'Workspace mismatch'},403);
     if (!types.has(payload.type)) return json({ignored:true});
+    const id=pageId(payload.entity?.id);
+    if (!id || payload.entity?.type!=='page') return json({ignored:true});
     const time=Date.parse(payload.timestamp);
     if (!payload.id || !Number.isFinite(time) || Math.abs(Date.now()-time)>7*86400000) return json({error:'Invalid event'},400);
     const seen=await this.ctx.storage.get('seen') || [];
     if (seen.includes(payload.id)) return json({duplicate:true});
     await this.ctx.storage.put('seen',[...seen.slice(-999),payload.id]);
     await this.ctx.storage.put('locked',true);
-    await this.queue(payload.type);
+    await this.queue(payload.type,id);
     return json({queued:true});
   }
-  async queue(reason) {
+  async queue(reason,id=null) {
     const now=Date.now(),state=await this.ctx.storage.get('state') || {};
     state.pending=true;state.target=now;state.lastEventAt=new Date(now).toISOString();state.reason=reason;state.error=null;
+    state.revision=(state.revision || 0)+1;
+    if (id) state.changes={...(state.changes || {}),[id]:{revision:state.revision,type:reason}};
+    else state.fullRevision=state.revision;
     if (!state.awaiting) {state.attempts=0;state.firstQueuedAt=state.firstQueuedAt || now;}
     await this.ctx.storage.put('state',state);
-    if (!state.awaiting) {
+    if (!state.awaiting || reason==='manual' || reason==='article-button') {
       // Trailing-edge coalescing, bounded at 2 minutes so continuous edits still publish.
-      await this.ctx.storage.setAlarm(Math.min(now+(reason==='manual'?2000:15000),state.firstQueuedAt+120000));
+      await this.ctx.storage.setAlarm(Math.min(now+(['manual','article-button'].includes(reason)?2000:15000),(state.firstQueuedAt || now)+120000));
     }
   }
   async alarm() {
@@ -76,7 +95,7 @@ export class BlogSync {
         const check=await fetch(this.env.SITE_URL+'/_notion-sync.json?t='+Date.now(),{cache:'no-store',signal:AbortSignal.timeout(15000)});
         const result=check.ok ? await check.json().catch(()=>({})) : {};
         state=await this.ctx.storage.get('state') || state;
-        if (Date.parse(result.syncedAt)>=state.target) {
+        if (state.revision ? Number.isSafeInteger(result.revision) && result.revision>=state.revision : Date.parse(result.syncedAt)>=state.target) {
           state.pending=false;state.awaiting=false;state.firstQueuedAt=null;state.lastPublishedAt=result.syncedAt;state.error=null;
           await this.ctx.storage.put('state',state);return;
         }

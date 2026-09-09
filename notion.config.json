@@ -2,6 +2,7 @@
   "dataSourceId": "8b715c54-f0d4-4139-bfdb-0da86a27c44d",
   "databaseUrl": "https://www.notion.so/cb97c82e4f104ec7b6129ca07429e03c",
   "site": "https://gamecrafter.fun",
+  "syncWorker": "https://gamecrafter-notion-sync.zzciweb.workers.dev",
   "fields": {
     "title": "标题",
     "description": "摘要",

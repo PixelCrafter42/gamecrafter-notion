@@ -23,4 +23,5 @@ pnpm-debug.log*
 # jetbrains setting folder
 .idea/
 public/_notion-sync.json
+public/_notion-content.json
 .wrangler/

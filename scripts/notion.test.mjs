@@ -17,6 +17,39 @@ test('drafts, archived and trashed pages never publish',()=>{
   assert.equal(metadata({...page(),is_archived:true},fields),null);
   assert.equal(metadata(page(),fields).id,'one');
 });
+test('incremental publication reads only the target and preserves other published bodies',async()=>{
+  const old=[{id:'one',sourcePageId:'one',html:'old A',mediaIndex:{}},{id:'two',sourcePageId:'two',html:'old B',mediaIndex:{}}];
+  const calls=[];
+  const request=async path=>{
+    calls.push(path);
+    if(path==='data_sources/db') return schema;
+    if(path==='pages/one') return {...page('one'),parent:{data_source_id:'db'}};
+    if(path.startsWith('blocks/one/')) return {results:[block('new A')],has_more:false};
+    throw new Error('must never read B or query all pages: '+path);
+  };
+  const posts=await collectSnapshot({config,request,media:async()=>'',previous:old,targets:[{id:'one',type:'article-button'}]});
+  assert.equal(posts.find(p=>p.id==='one').html,'<p>new A</p>');
+  assert.deepEqual(posts.find(p=>p.id==='two'),old[1]);
+  assert.equal(calls.filter(p=>p.startsWith('blocks/')).length,1);
+  assert.deepEqual(await collectSnapshot({previous:old,targets:[]}),old);
+});
+test('incremental draft, deletion and moving out remove only the target; unrelated 404 fails closed',async()=>{
+  const previous=[{id:'one',sourcePageId:'one',html:'A'},{id:'two',sourcePageId:'two',html:'B'}];
+  for(const value of [{...page('one','草稿'),parent:{data_source_id:'db'}},{...page('one'),parent:{data_source_id:'other'}},null]) {
+    const request=async path=>{
+      if(path==='data_sources/db') return schema;
+      if(value) return value;
+      const error=new Error('missing');error.status=404;throw error;
+    };
+    const posts=await collectSnapshot({config,request,previous,targets:[{id:'one',type:'page.deleted'}]});
+    assert.deepEqual(posts,[previous[1]]);
+    if(!value) await assert.rejects(()=>collectSnapshot({config,request,previous,targets:[{id:'one',type:'article-button'}]}),/missing/);
+  }
+});
+test('incremental duplicate slug cannot overwrite an unrelated article',async()=>{
+  const request=async path=>path==='data_sources/db'?schema:{...page('two'),id:'one',parent:{data_source_id:'db'}};
+  await assert.rejects(()=>collectSnapshot({config,request,previous:[{id:'two',sourcePageId:'two'}],targets:[{id:'one'}]}),/重复/);
+});
 test('slugs reject traversal and unsafe path syntax',()=>{
   for (const slug of ['../secret','a/b','<script>','A B','a?x=1']) assert.throws(()=>metadata(page(slug),fields));
 });

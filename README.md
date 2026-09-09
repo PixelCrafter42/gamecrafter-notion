@@ -5,37 +5,49 @@
 
 ## 写作与发布
 
-1. 在「博客文章」新建文章，填写标题，打开页面写正文。
-2. 填写摘要、发布日期、标签。文章链接可留空，或填写小写英文短名，如 my-first-post。
-3. 将「发布状态」改成「已发布」即可触发发布；改为草稿或删除文章会触发下线。
-4. 标题等属性变化也自动更新。正文编辑完成后，点击管理页「发布到博客」按钮更新。
+在「博客文章」数据库写文章，状态为「已发布」才会出现在网站。
 
-只发布状态为「已发布」的文章。按钮会更新全部已发布文章，不会发布草稿。
-两种 Webhook 最终都触发 Cloudflare Pages 构建，生效需等待构建完成；Notion 自动事件还可能聚合延迟。
-没有 GitHub 定时任务。代码提交仍会触发正常部署，也会读取当前已发布内容。
-发布日期用于排序，不是定时发布开关。修改文章链接会改变 URL，旧地址不自动跳转。
-不要重命名数据库字段，除非同时修改 notion.config.json。
+- 修改文章属性（包括发布状态）：只同步该篇文章。
+- 编辑正文后点击该行的「发布」按钮字段：只同步该篇文章。
+- 管理页「全量更新」按钮：重新读取全部已发布文章，适合主动批量发布或修复缓存。
+- 改成草稿、删除或移出文章库：移除该篇已发布缓存。
 
+单篇发布沿用其他文章上一次发布的内容，不读取其他文章未发布的正文修改。
+同一批待处理的文章会一起同步。按钮不改变文章状态，草稿不会因点击按钮而公开。
+每次同步后仍重新构建静态网站，使首页、归档、RSS、站点地图保持一致。
+Notion 事件可能聚合延迟，触发后还需等待构建完成；无 GitHub 定时任务。
+代码提交没有新的内容事件时只使用已发布缓存，不重新读取 Notion。
+
+文章链接可留空，或填写小写英文短名，如 my-first-post。修改后旧 URL 不自动跳转。
+发布日期用于排序，不是定时发布。不要重命名字段，除非同时更新 notion.config.json。
 支持段落、标题、列表、代码、引用、折叠、待办、表格、图片和常见附件。
-Notion 上传附件复制到本站，单文件上限 20 MB。外链媒体保留原地址。
-特殊区块不支持时本轮构建失败，保留线上版本。错误可查看 Pages 构建日志。
+Notion 附件上限 20 MB。未变化的上传附件从已发布 CDN 复用，不重复请求 Notion 附件地址。
+静态部署仍需携带全站文件；文章数和媒体总量增长后，全站构建及文件传输仍会增长。
+
+## 同步逻辑
+
+Notion Webhook → Cloudflare Worker 记录文章 ID 与递增版本 → Pages Deploy Hook → 单篇读取 → 全站构建。
+
+Worker Durable Object 保存每篇文章最后一次请求的版本及全量请求版本。
+构建先取线上 /_notion-content.json 已发布快照，再用 /plan?since=<revision> 获取尚未发布的目标文章。
+只替换目标文章，其他内容和媒体索引保持不变。整个成功部署同时发布新快照和 /_notion-sync.json 版本标记。
+处理过程中到达的新事件版本不会被旧构建确认清除。失败有限重试，旧线上版本保留。
+首次初始化缺少快照时必须主动全量更新，不会将缓存读取错误隐式降级为全量发布。
+快照只包含已发布内容，不含草稿、Notion token 或原始附件签名 URL。
 
 ## 配置
 
-Notion → Cloudflare Worker → Pages Deploy Hook → 构建时读取 Notion → 静态网站。
+Pages 生产环境加密密钥：NOTION_TOKEN（仅文章库只读）、SYNC_KEY（与 Worker PUBLISH_KEY 一致）。
+Worker 位于 workers/notion-webhook，密钥为 SETUP_KEY、PUBLISH_KEY、DEPLOY_HOOK_URL。
 
-- Pages 生产环境加密密钥：NOTION_TOKEN。内部连接只读，范围仅博客文章库。
-- Worker 位于 workers/notion-webhook，Wrangler 配置自动创建 SQLite Durable Object。
-- Worker 加密密钥：SETUP_KEY、PUBLISH_KEY、DEPLOY_HOOK_URL。
-- 自动订阅：page.created、page.properties_updated、page.deleted、page.undeleted、page.moved。
-- 自动端点：/notion/<SETUP_KEY>。验证令牌暂存于 Durable Object，通过 /setup/<SETUP_KEY> 读取后填入 Notion；第一个有效签名事件到达后此读取入口关闭。
-- 手动按钮：Send webhook，POST /publish/<PUBLISH_KEY>。
-- 不订阅 page.content_updated。按钮 URL 是私密凭据，只放在私人管理页按钮配置中。
+- 自动事件：page.created、page.properties_updated、page.deleted、page.undeleted、page.moved。
+- 自动端点：/notion/<SETUP_KEY>，验证 Notion HMAC 签名。
+- 数据库按钮端点：/article/<PUBLISH_KEY>，从 Notion 标准按钮请求的 data.id 获取文章 ID。
+- 全量按钮端点：/publish/<PUBLISH_KEY>。
+- 构建计划端点：/plan，Authorization: Bearer <SYNC_KEY>。
 
-自动事件校验 HMAC 签名和工作区，去重并合并连续触发。构建失败有限重试，根路径返回发布状态。
-Pages 构建缺失密钥、读取失败、数据异常时停止部署，保留旧网站。
-生成内容单向来自 Notion，不要直接修改 src/data/notion-posts.json。
-下线不清除旧部署或互联网缓存。
+不订阅 page.content_updated。私密 Webhook 地址只保存在私人 Notion 管理页或按钮配置。
+发布错误查看 Pages 构建日志。下线不清除旧部署或互联网缓存。
 
 ## 开发
 
@@ -48,9 +60,9 @@ npm run build
 npm run dev
 ```
 
-本地无密钥时使用已提交内容快照；有 NOTION_TOKEN 时构建读取 Notion。
-本机可用 NOTION_CLI_SCRIPT 指向已登录 ntn 的入口，不将 CLI 登录凭据部署到云端。
-
+本地无 Notion 密钥时使用已提交快照。
+NOTION_CLI_SCRIPT 可指向已登录 ntn 入口，在本地显式全量同步；CLI 凭据不部署到云端。
+配置 NOTION_TOKEN 和 SYNC_KEY 时执行云端同样的增量流程。
 Pages 构建命令 npm run build，输出 dist，分支 main。
 Worker 根目录 workers/notion-webhook，部署命令 npx wrangler deploy。
 站点标题简介 src/consts.ts，样式 src/styles/global.css。
