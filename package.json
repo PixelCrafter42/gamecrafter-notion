@@ -8,10 +8,11 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "postbuild": "node scripts/build-pages-worker.mjs",
     "preview": "astro preview",
     "astro": "astro",
     "prebuild": "node scripts/build-notion.mjs",
-    "test": "node --test scripts/notion.test.mjs workers/notion-webhook/worker.test.mjs"
+    "test": "node --test scripts/notion.test.mjs scripts/pages-worker.test.mjs workers/notion-webhook/worker.test.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^8.0.1",
