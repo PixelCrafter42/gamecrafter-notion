@@ -1,0 +1,7 @@
+{
+  "name": "gamecrafter-notion-sync",
+  "private": true,
+  "type": "module",
+  "scripts": {"deploy":"wrangler deploy", "test":"node --test worker.test.mjs"},
+  "devDependencies": {"wrangler":"4.130.0"}
+}

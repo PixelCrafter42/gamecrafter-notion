@@ -1,13 +1,14 @@
 import { defineCollection } from "astro:content";
-import { glob } from "astro/loaders";
+import { file } from "astro/loaders";
 import { z } from "astro/zod";
 
 const blog = defineCollection({
-  loader: glob({ base: "./src/content/blog", pattern: "**/*.{md,mdx}" }),
+  loader: file("src/data/notion-posts.json"),
   schema: ({ image }) =>
     z.object({
       title: z.string(),
       description: z.string(),
+      html: z.string(),
       pubDate: z.coerce.date(),
       updatedDate: z.coerce.date().optional(),
       heroImage: image().optional(),

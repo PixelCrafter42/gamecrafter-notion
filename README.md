@@ -1,53 +1,56 @@
-# Craft4Fun 博客
+# Craft4Fun：Notion 博客
 
-基于 Astro 官方博客模板，使用静态生成，部署至 Cloudflare Pages。
+网站：https://gamecrafter.fun
+管理：[Notion 博客管理](https://www.notion.so/3d67448d2ab181ddb9b2c516e26bf75b)
 
-## 本地运行
+## 写作与发布
 
-需要 Node.js 22.18.0 或兼容版本。
+1. 在「博客文章」新建文章，填写标题，打开页面写正文。
+2. 填写摘要、发布日期、标签。文章链接可留空，或填写小写英文短名，如 my-first-post。
+3. 将「发布状态」改成「已发布」即可触发发布；改为草稿或删除文章会触发下线。
+4. 标题等属性变化也自动更新。正文编辑完成后，点击管理页「发布到博客」按钮更新。
+
+只发布状态为「已发布」的文章。按钮会更新全部已发布文章，不会发布草稿。
+两种 Webhook 最终都触发 Cloudflare Pages 构建，生效需等待构建完成；Notion 自动事件还可能聚合延迟。
+没有 GitHub 定时任务。代码提交仍会触发正常部署，也会读取当前已发布内容。
+发布日期用于排序，不是定时发布开关。修改文章链接会改变 URL，旧地址不自动跳转。
+不要重命名数据库字段，除非同时修改 notion.config.json。
+
+支持段落、标题、列表、代码、引用、折叠、待办、表格、图片和常见附件。
+Notion 上传附件复制到本站，单文件上限 20 MB。外链媒体保留原地址。
+特殊区块不支持时本轮构建失败，保留线上版本。错误可查看 Pages 构建日志。
+
+## 配置
+
+Notion → Cloudflare Worker → Pages Deploy Hook → 构建时读取 Notion → 静态网站。
+
+- Pages 生产环境加密密钥：NOTION_TOKEN。内部连接只读，范围仅博客文章库。
+- Worker 位于 workers/notion-webhook，Wrangler 配置自动创建 SQLite Durable Object。
+- Worker 加密密钥：SETUP_KEY、PUBLISH_KEY、DEPLOY_HOOK_URL。
+- 自动订阅：page.created、page.properties_updated、page.deleted、page.undeleted、page.moved。
+- 自动端点：/notion/<SETUP_KEY>。验证令牌暂存于 Durable Object，通过 /setup/<SETUP_KEY> 读取后填入 Notion；第一个有效签名事件到达后此读取入口关闭。
+- 手动按钮：Send webhook，POST /publish/<PUBLISH_KEY>。
+- 不订阅 page.content_updated。按钮 URL 是私密凭据，只放在私人管理页按钮配置中。
+
+自动事件校验 HMAC 签名和工作区，去重并合并连续触发。构建失败有限重试，根路径返回发布状态。
+Pages 构建缺失密钥、读取失败、数据异常时停止部署，保留旧网站。
+生成内容单向来自 Notion，不要直接修改 src/data/notion-posts.json。
+下线不清除旧部署或互联网缓存。
+
+## 开发
+
+Node.js 22.19 或更新维护版本。
 
 ```sh
 npm ci
-npm run dev
+npm test
 npm run build
-npm run preview
+npm run dev
 ```
 
-## 写文章
+本地无密钥时使用已提交内容快照；有 NOTION_TOKEN 时构建读取 Notion。
+本机可用 NOTION_CLI_SCRIPT 指向已登录 ntn 的入口，不将 CLI 登录凭据部署到云端。
 
-在 `src/content/blog/` 新建 `文章英文短名.md`：
-
-```md
----
-title: "文章标题"
-description: "一句话摘要"
-pubDate: "2026-09-09"
-tags: ["随笔"]
-draft: false
----
-
-正文使用 Markdown。
-```
-
-文件名对应地址 `/blog/文章英文短名/`。支持 Markdown / MDX。
-设置 `draft: true` 后不会生成公开页面，也不会出现在首页、归档、RSS 或 sitemap 中。
-图片可以放在 `public/images/`，用 `![说明](/images/图片名.jpg)` 引用。
-可选 `updatedDate` 记录更新时间。修改站点名及简介请编辑 `src/consts.ts`。
-
-## Cloudflare Pages
-
-- GitHub 仓库：cc4share/gamecrafter-blog
-- 生产分支：main
-- 框架：Astro
-- 构建命令：npm run build
-- 构建输出目录：dist
-- Node.js：22.18.0
-- 正式域名：https://gamecrafter.fun
-
-连接 Git 后，推送 main 自动发布，PR 可生成预览部署。域名更改时同步修改 `astro.config.mjs` 与 `public/robots.txt`。
-无 SSR、数据库、密钥或付费服务依赖。RSS 位于 /rss.xml，站点地图位于 /sitemap-index.xml。
-
-## 内容与隐私
-
-站点带一篇开站说明及关于页。未启用广告、评论或统计。
-未设置 ads.txt：没有广告账户或发布商 ID 时无需填写虚假信息。
+Pages 构建命令 npm run build，输出 dist，分支 main。
+Worker 根目录 workers/notion-webhook，部署命令 npx wrangler deploy。
+站点标题简介 src/consts.ts，样式 src/styles/global.css。
