@@ -19,10 +19,10 @@ npm run preview
 
 ```md
 ---
-title: '文章标题'
-description: '一句话摘要'
-pubDate: '2026-09-09'
-tags: ['随笔']
+title: "文章标题"
+description: "一句话摘要"
+pubDate: "2026-09-09"
+tags: ["随笔"]
 draft: false
 ---
 
