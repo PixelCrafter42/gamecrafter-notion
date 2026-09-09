@@ -7,3 +7,13 @@
   Cache-Control: no-store
 /_notion-content.json
   Cache-Control: no-store
+
+# Article URLs are mutable, including when a published article is removed.
+/blog/*
+  Cache-Control: no-store
+/
+  Cache-Control: no-cache, max-age=0, must-revalidate
+/rss.xml
+  Cache-Control: no-cache, max-age=0, must-revalidate
+/sitemap*
+  Cache-Control: no-cache, max-age=0, must-revalidate
