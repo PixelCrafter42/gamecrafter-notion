@@ -1,0 +1,13 @@
+---
+import { SITE_TITLE } from '../consts';
+const path = Astro.url.pathname;
+const links = [{href:'/', text:'首页'}, {href:'/blog/', text:'文章'}, {href:'/about/', text:'关于'}];
+---
+<a class="skip-link" href="#main">跳到内容</a>
+<header class="site-header">
+  <a class="brand" href="/" aria-label={SITE_TITLE + ' 首页'}><span class="brand-mark" aria-hidden="true">c.</span>{SITE_TITLE}</a>
+  <nav aria-label="主导航">
+    {links.map(link => <a href={link.href} aria-current={(link.href === '/' ? path === '/' : path.startsWith(link.href)) ? 'page' : undefined}>{link.text}</a>)}
+    <a href="/rss.xml" class="rss-link" aria-label="订阅 RSS">RSS <span aria-hidden="true">↗</span></a>
+  </nav>
+</header>

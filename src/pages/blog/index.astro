@@ -1,0 +1,12 @@
+---
+import { getCollection } from 'astro:content';
+import Page from '../../layouts/Page.astro';
+import PostList from '../../components/PostList.astro';
+const posts = (await getCollection('blog', ({data}) => !data.draft)).sort((a,b)=>b.data.pubDate.valueOf()-a.data.pubDate.valueOf());
+const years = [...new Set(posts.map(p=>p.data.pubDate.getUTCFullYear()))];
+---
+<Page title="文章归档 · Craft4Fun" description="Craft4Fun 的文章与记录。">
+  <header class="page-heading"><div class="eyebrow">Archive</div><h1>文章归档</h1><p>共 {posts.length} 篇文章。</p></header>
+  {years.map(year=><section aria-label={year+' 年文章'}><div class="section-heading"><h2>{year}</h2></div><PostList posts={posts.filter(p=>p.data.pubDate.getUTCFullYear()===year)} /></section>)}
+  {posts.length===0 && <p class="empty-state">第一篇文章正在酝酿中。</p>}
+</Page>

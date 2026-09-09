@@ -1,0 +1,20 @@
+---
+import { Image } from 'astro:assets';
+import type { CollectionEntry } from 'astro:content';
+import Page from './Page.astro';
+import FormattedDate from '../components/FormattedDate.astro';
+type Props = CollectionEntry<'blog'>['data'];
+const {title,description,pubDate,updatedDate,heroImage,tags=[]} = Astro.props;
+---
+<Page title={title+' · Craft4Fun'} description={description} narrow>
+  <article>
+    <header class="article-header">
+      <div class="eyebrow">Journal</div>
+      <div class="article-meta"><FormattedDate date={pubDate} />{updatedDate && <span> · 更新于 <FormattedDate date={updatedDate} /></span>}</div>
+      <h1>{title}</h1><p class="description">{description}</p>
+      <div class="tags">{tags.map(tag=><span class="tag">{tag}</span>)}</div>
+    </header>
+    <div class="prose">{heroImage && <Image src={heroImage} width={1440} alt={title} />}<slot /></div>
+  </article>
+  <a class="back-link" href="/blog/">← 返回全部文章</a>
+</Page>
