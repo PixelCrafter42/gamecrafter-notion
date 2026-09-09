@@ -1,0 +1,14 @@
+{
+  "dataSourceId": "8b715c54-f0d4-4139-bfdb-0da86a27c44d",
+  "databaseUrl": "https://www.notion.so/cb97c82e4f104ec7b6129ca07429e03c",
+  "site": "https://gamecrafter.fun",
+  "fields": {
+    "title": "标题",
+    "description": "摘要",
+    "status": "发布状态",
+    "published": "已发布",
+    "date": "发布日期",
+    "tags": "标签",
+    "slug": "文章链接"
+  }
+}

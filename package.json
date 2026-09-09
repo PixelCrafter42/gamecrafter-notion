@@ -9,7 +9,9 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "prebuild": "node scripts/build-notion.mjs",
+    "test": "node --test scripts/notion.test.mjs workers/notion-webhook/worker.test.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^8.0.1",

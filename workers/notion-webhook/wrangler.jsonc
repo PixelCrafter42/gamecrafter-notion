@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "gamecrafter-notion-sync",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-09-09",
+  "workers_dev": true,
+  "durable_objects": {"bindings":[{"name":"SYNC_STATE","class_name":"BlogSync"}]},
+  "migrations": [{"tag":"v1","new_sqlite_classes":["BlogSync"]}],
+  "vars": {"SITE_URL":"https://gamecrafter.fun","WORKSPACE_ID":"a6b74eab-ed1f-45e3-ab56-e120efad1681"}
+}
