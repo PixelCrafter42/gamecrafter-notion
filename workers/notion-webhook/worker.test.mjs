@@ -5,6 +5,8 @@ import worker,{BlogSync,validSignature} from './worker.mjs';
 function fixture() {
   const values=new Map();
   const storage={get:async k=>structuredClone(values.get(k)),put:async(k,v)=>values.set(k,structuredClone(v)),setAlarm:async time=>{storage.alarm=time;}};
+  storage.list=async({prefix})=>new Map([...values].filter(([key])=>key.startsWith(prefix)).map(([key,value])=>[key,structuredClone(value)]));
+  storage.transaction=async callback=>callback(storage);
   const env={SETUP_KEY:'setup',PUBLISH_KEY:'publish',WORKSPACE_ID:'space',SITE_URL:'https://site.test',DEPLOY_HOOK_URL:'https://hook.test'};
   const obj=new BlogSync({storage},env);
   env.SYNC_STATE={idFromName:()=>1,get:()=>obj};

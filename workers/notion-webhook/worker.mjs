@@ -35,10 +35,14 @@ export class BlogSync {
       return json({service:'Notion → gamecrafter.fun',pending:!!state.pending,revision:state.revision || 0,lastReason:state.reason || null,lastEventAt:state.lastEventAt || null,lastPublishedAt:state.lastPublishedAt || null,error:state.error || null});
     }
     if (path==='/plan') {
+      return this.ctx.storage.transaction(async storage=>{
       const since=Number(new URL(request.url).searchParams.get('since') || 0);
-      const state=await this.ctx.storage.get('state') || {};
+      const state=await storage.get('state') || {};
       if (!Number.isSafeInteger(since) || since<0 || since>(state.revision || 0)) return json({error:'Invalid snapshot revision'},409);
-      return json({revision:state.revision || 0,full:(state.fullRevision || 0)>since,targets:Object.entries(state.changes || {}).filter(([,change])=>change.revision>since).map(([id,change])=>({id,...change}))});
+      const changes={...(state.changes || {})}; // Read the original layout during migration.
+      for (const [key,change] of await storage.list({prefix:'change:'})) changes[key.slice(7)]=change;
+      return json({revision:state.revision || 0,full:(state.fullRevision || 0)>since,targets:Object.entries(changes).filter(([,change])=>change.revision>since && change.revision<=(state.revision || 0)).map(([id,change])=>({id,...change}))});
+      });
     }
     if (path.startsWith('/setup/')) {
       if (await this.ctx.storage.get('locked')) return json({error:'Setup closed'},410);
@@ -75,13 +79,17 @@ export class BlogSync {
     return json({queued:true});
   }
   async queue(reason,id=null) {
-    const now=Date.now(),state=await this.ctx.storage.get('state') || {};
-    state.pending=true;state.target=now;state.lastEventAt=new Date(now).toISOString();state.reason=reason;state.error=null;
-    state.revision=(state.revision || 0)+1;
-    if (id) state.changes={...(state.changes || {}),[id]:{revision:state.revision,type:reason}};
-    else state.fullRevision=state.revision;
-    if (!state.awaiting) {state.attempts=0;state.firstQueuedAt=state.firstQueuedAt || now;}
-    await this.ctx.storage.put('state',state);
+    const now=Date.now();
+    const state=await this.ctx.storage.transaction(async storage=>{
+      const current=await storage.get('state') || {};
+      current.pending=true;current.target=now;current.lastEventAt=new Date(now).toISOString();current.reason=reason;current.error=null;
+      current.revision=(current.revision || 0)+1;
+      // Separate records avoid a single storage-value size limit as the article library grows.
+      if (id) await storage.put('change:'+id,{revision:current.revision,type:reason});
+      else current.fullRevision=current.revision;
+      if (!current.awaiting) {current.attempts=0;current.firstQueuedAt=current.firstQueuedAt || now;}
+      await storage.put('state',current);return current;
+    });
     if (!state.awaiting || reason==='manual' || reason==='article-button') {
       // Trailing-edge coalescing, bounded at 2 minutes so continuous edits still publish.
       await this.ctx.storage.setAlarm(Math.min(now+(['manual','article-button'].includes(reason)?2000:15000),(state.firstQueuedAt || now)+120000));
