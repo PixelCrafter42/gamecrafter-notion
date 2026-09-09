@@ -5,3 +5,5 @@
 
 /_notion-sync.json
   Cache-Control: no-store
+/_notion-content.json
+  Cache-Control: no-store
