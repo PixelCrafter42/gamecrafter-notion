@@ -6,12 +6,12 @@ import PostCard from './PostCard.astro';
 import ProjectCard from './ProjectCard.astro';
 import { quietPublicationTheme } from './theme.config';
 const { posts, projects = [] } = Astro.props;
-const writingSection = site.sections.find(section => section.key === 'writing');
-const projectsSection = site.sections.find(section => section.key === 'projects');
-const aboutSection = site.sections.find(section => section.key === 'about');
-const postLimit = writingSection?.homeLimit || 5;
-const projectLimit = projectsSection?.homeLimit || 3;
-const featuredProjects = [...projects].sort((a,b)=>Number(b.data.featured)-Number(a.data.featured) || b.data.pubDate.valueOf()-a.data.pubDate.valueOf()).slice(0,projectLimit);
+const homeSections = site.sections.filter(section => section.showOnHome && section.key !== 'home').sort((a,b)=>a.navOrder-b.navOrder);
+const allContent = [...posts, ...projects];
+const contentFor = section => allContent
+  .filter(item => item.data.moduleKey === section.key)
+  .sort((a,b)=>Number(b.data.featured)-Number(a.data.featured) || b.data.pubDate.valueOf()-a.data.pubDate.valueOf())
+  .slice(0, section.homeLimit || (section.layout === '项目网格' ? 3 : 5));
 const heroStyle = [
   `--hero-spacing:${quietPublicationTheme.homeIntro.spacing}`,
   `--hero-lede-size:${quietPublicationTheme.homeIntro.ledeSize}`,
@@ -22,21 +22,26 @@ const heroStyle = [
     <p class="lede">{site.description}</p>
     <p class="author">{site.author.bio}</p>
   </section>
-  {writingSection?.showOnHome && <section class="container">
-    <div class="section-heading"><h2><span>01 /</span> {site.pages.home.writingTitle}</h2><a href="/blog/">全部 {posts.length} 篇 <Icon name="arrowRight" size="sm" /></a></div>
-    <p class="eyebrow sub">最近更新</p>
-    {posts.length > 0 ? <div class="list">{posts.slice(0, postLimit).map(post => <PostCard post={post} />)}</div> : <p class="empty">还没有公开文章。</p>}
-  </section>}
-  {projectsSection?.showOnHome && <section class="container">
-    <div class="section-heading"><h2><span>02 /</span> {site.navigation.projects}</h2><a href="/projects/">全部 {projects.length} 个 <Icon name="arrowRight" size="sm" /></a></div>
-    {featuredProjects.length > 0 ? <div class="project-grid">{featuredProjects.map(project => <ProjectCard project={project} compact />)}</div> : <p class="empty">还没有公开项目。</p>}
-  </section>}
-  {aboutSection?.showOnHome && <section class="start container">
-    <p class="eyebrow">{projectsSection?.showOnHome ? '03' : '02'} / {site.navigation.about}</p>
-    <h2>{site.pages.home.aboutTitle}</h2>
-    <p>{site.pages.home.aboutDescription}</p>
-    <a href="/about/">了解更多 <Icon name="arrowRight" size="sm" /></a>
-  </section>}
+  {homeSections.map((section,index) => {
+    const items = contentFor(section);
+    const count = allContent.filter(item => item.data.moduleKey === section.key).length;
+    const number = String(index + 1).padStart(2,'0');
+    if (section.layout === '普通页面') return <section class="start container">
+      <p class="eyebrow">{number} / {section.navLabel}</p>
+      <h2>{section.homeTitle || section.heading}</h2>
+      <p>{section.homeDescription || section.description}</p>
+      <a href={`${section.path}/`}>了解更多 <Icon name="arrowRight" size="sm" /></a>
+    </section>;
+    if (section.layout === '项目网格') return <section class="container">
+      <div class="section-heading"><h2><span>{number} /</span> {section.homeTitle || section.navLabel}</h2><a href={`${section.path}/`}>全部 {count} 个 <Icon name="arrowRight" size="sm" /></a></div>
+      {items.length > 0 ? <div class="project-grid">{items.map(project => <ProjectCard project={project} compact />)}</div> : <p class="empty">还没有公开内容。</p>}
+    </section>;
+    return <section class="container">
+      <div class="section-heading"><h2><span>{number} /</span> {section.homeTitle || section.navLabel}</h2><a href={`${section.path}/`}>全部 {count} 篇 <Icon name="arrowRight" size="sm" /></a></div>
+      <p class="eyebrow sub">最近更新</p>
+      {items.length > 0 ? <div class="list">{items.map(post => <PostCard post={post} />)}</div> : <p class="empty">还没有公开内容。</p>}
+    </section>;
+  })}
 </BaseLayout>
 <style>
   .hero { padding:var(--hero-spacing); }

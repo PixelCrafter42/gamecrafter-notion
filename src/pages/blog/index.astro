@@ -1,6 +1,0 @@
----
-import { getCollection } from 'astro:content';
-import { Archive } from '../../theme';
-const posts = (await getCollection('blog', ({data}) => !data.draft)).sort((a,b)=>b.data.pubDate.valueOf()-a.data.pubDate.valueOf());
----
-<Archive posts={posts} />

@@ -2,19 +2,19 @@
 import { site } from '../../site.config';
 import BaseLayout from './BaseLayout.astro';
 import PostCard from './PostCard.astro';
-const { posts } = Astro.props;
+const { posts, section } = Astro.props;
 const years = [...new Set(posts.map(post => post.data.pubDate.getUTCFullYear()))];
 ---
-<BaseLayout title={`写作 · ${site.name}`} description={`${site.name} 的全部文章与记录。`}>
+<BaseLayout title={`${section.navLabel} · ${site.name}`} description={section.description || `${site.name} 的${section.navLabel}内容。`}>
   <header class="page-head container">
-    <p class="eyebrow">{site.pages.writing.eyebrow}</p>
-    <h1>{site.pages.writing.title}</h1>
+    <p class="eyebrow">{section.eyebrow}</p>
+    <h1>{section.heading}</h1>
     <p>共 {posts.length} 篇，按发布时间排序。</p>
   </header>
   {posts.length > 0 ? years.map(year => <section class="container year" aria-label={`${year} 年文章`}>
     <div class="section-heading"><h2>{year}</h2></div>
     <div class="list">{posts.filter(post => post.data.pubDate.getUTCFullYear() === year).map(post => <PostCard post={post} />)}</div>
-  </section>) : <p class="container empty">还没有公开文章。</p>}
+  </section>) : <p class="container empty">还没有公开内容。</p>}
 </BaseLayout>
 <style>
   .page-head { padding:5rem 0 2rem; }
