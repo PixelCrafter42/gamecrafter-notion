@@ -2,6 +2,8 @@
   {
     "id": "hello-world",
     "kind": "article",
+    "moduleKey": "writing",
+    "modulePath": "/blog",
     "title": "你好",
     "description": "先搭起一个小小的空间，让记录有个落脚点。现在可以在 Notion 中更新。",
     "pubDate": "2026-09-09T00:00:00.000Z",
@@ -17,6 +19,7 @@
     "cover": "",
     "html": "<p>欢迎来到，玩的时代</p>",
     "sourcePageId": "3d67448d-2ab1-81c6-96e7-f5cd127d3c43",
+    "sourceId": "8b715c54-f0d4-4139-bfdb-0da86a27c44d",
     "mediaIndex": {}
   }
 ]

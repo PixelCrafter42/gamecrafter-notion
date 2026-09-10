@@ -11,8 +11,8 @@ function fixture() {
   const obj=new BlogSync({storage},env);
   env.SYNC_STATE={idFromName:()=>1,get:()=>obj};
   const request=(path,body,signature)=>worker.fetch(new Request('https://worker.test'+path,{method:body===undefined?'GET':'POST',body:body===undefined?undefined:JSON.stringify(body),headers:signature?{'X-Notion-Signature':signature}:{}}),env);
-  const event=async(type,id='one')=>{
-    const body={id,type,workspace_id:'space',entity:{id:'11111111-1111-1111-1111-111111111111',type:'page'},timestamp:new Date().toISOString()};
+  const event=async(type,id='one',entityType='page')=>{
+    const body={id,type,workspace_id:'space',entity:{id:'11111111-1111-1111-1111-111111111111',type:entityType},timestamp:new Date().toISOString()};
     return request('/notion/setup',body,'sha256='+createHmac('sha256','verify').update(JSON.stringify(body)).digest('hex'));
   };
   return {storage,env,obj,request,event};
@@ -29,6 +29,15 @@ test('webhook requires secret route and valid signature; content edits are ignor
   assert.deepEqual(await (await f.event('page.properties_updated')).json(),{duplicate:true});
   assert.equal((await f.request('/setup/setup')).status,410);
   assert.equal(await validSignature('x','sha256='+'0'.repeat(64),'verify'),false);
+});
+test('data source changes queue a full deployment',async()=>{
+  const f=fixture();
+  await f.request('/notion/setup',{verification_token:'verify'});
+  assert.deepEqual(await (await f.event('data_source.schema_updated','source-change','data_source')).json(),{queued:true});
+  const state=await f.storage.get('state');
+  assert.equal(state.revision,1);
+  assert.equal(state.fullRevision,1);
+  assert.equal(state.reason,'data_source.schema_updated');
 });
 test('manual button queues deployment and successful live build confirms it',async()=>{
   const f=fixture(),original=globalThis.fetch;

@@ -17,6 +17,88 @@
       "href": "https://x.com/zzciweb"
     }
   ],
+  "sections": [
+    {
+      "key": "home",
+      "name": "首页",
+      "path": "/",
+      "layout": "首页",
+      "enabled": true,
+      "navLabel": "首页",
+      "showInNav": true,
+      "navOrder": 0,
+      "eyebrow": "",
+      "heading": "Craft4Fun",
+      "description": "想法、尝试与记录。",
+      "showOnHome": false,
+      "homeTitle": "",
+      "homeDescription": "",
+      "homeLimit": 0,
+      "contentSource": "",
+      "sourcePageId": "3d77448d-2ab1-8196-86e4-ed34485a7706",
+      "html": ""
+    },
+    {
+      "key": "writing",
+      "name": "写作",
+      "path": "/blog",
+      "layout": "文章列表",
+      "enabled": true,
+      "navLabel": "写作",
+      "showInNav": true,
+      "navOrder": 1,
+      "eyebrow": "Writing",
+      "heading": "把值得留下的事情写下来。",
+      "description": "",
+      "showOnHome": true,
+      "homeTitle": "写作",
+      "homeDescription": "",
+      "homeLimit": 5,
+      "contentSource": "写作",
+      "sourcePageId": "3d77448d-2ab1-816e-add9-d2857a2ce56e",
+      "html": ""
+    },
+    {
+      "key": "projects",
+      "name": "项目",
+      "path": "/projects",
+      "layout": "项目网格",
+      "enabled": true,
+      "navLabel": "项目",
+      "showInNav": true,
+      "navOrder": 2,
+      "eyebrow": "Projects",
+      "heading": "做过的事。",
+      "description": "一些正在进行、持续维护或已经完成的项目。",
+      "showOnHome": true,
+      "homeTitle": "项目",
+      "homeDescription": "",
+      "homeLimit": 3,
+      "contentSource": "项目",
+      "sourcePageId": "3d77448d-2ab1-8110-bad0-ebd89fc57ad9",
+      "html": ""
+    },
+    {
+      "key": "about",
+      "name": "关于",
+      "path": "/about",
+      "layout": "普通页面",
+      "enabled": true,
+      "navLabel": "关于",
+      "showInNav": true,
+      "navOrder": 3,
+      "eyebrow": "About",
+      "heading": "关于这个博客",
+      "description": "一个存放想法、项目与记录的地方。",
+      "showOnHome": true,
+      "homeTitle": "你好",
+      "homeDescription": "欢迎来到 Craft for fun",
+      "homeLimit": 0,
+      "contentSource": "",
+      "sourcePageId": "3d77448d-2ab1-81ed-8830-cb996fc3c232",
+      "html": "<p>欢迎来到 Craft4Fun。</p><p>这里会慢慢积累文章、项目、尝试和日常记录。内容会从 Notion 发布到独立站点，并保留稳定链接、RSS 和深色模式。</p><p><a href=\"https://gamecrafter.fun/rss.xml\" rel=\"noopener noreferrer\">如果愿意，可以通过 RSS 订阅更新。</a></p>"
+    }
+  ],
   "navigation": {
     "home": "首页",
     "writing": "写作",
@@ -26,8 +108,8 @@
   "pages": {
     "home": {
       "writingTitle": "写作",
-      "aboutTitle": "慢慢写，慢慢积累。",
-      "aboutDescription": "这里用来存放想法、尝试，以及值得留下的记录。"
+      "aboutTitle": "你好",
+      "aboutDescription": "欢迎来到 Craft for fun"
     },
     "writing": {
       "eyebrow": "Writing",
@@ -42,7 +124,7 @@
       "eyebrow": "About",
       "title": "关于这个博客",
       "description": "一个存放想法、项目与记录的地方。",
-      "html": "<p>欢迎来到 Craft4Fun。</p><p>这里会慢慢积累文章、项目、尝试和日常记录。内容会从 Notion 发布到独立站点，并保留稳定链接、RSS 和深色模式。</p><p>如果愿意，可以通过 <a href=\"https://gamecrafter.fun/rss.xml\" rel=\"noopener noreferrer\">RSS</a> 订阅更新。</p>"
+      "html": "<p>欢迎来到 Craft4Fun。</p><p>这里会慢慢积累文章、项目、尝试和日常记录。内容会从 Notion 发布到独立站点，并保留稳定链接、RSS 和深色模式。</p><p><a href=\"https://gamecrafter.fun/rss.xml\" rel=\"noopener noreferrer\">如果愿意，可以通过 RSS 订阅更新。</a></p>"
     }
   },
   "features": {

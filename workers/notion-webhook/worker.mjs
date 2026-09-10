@@ -1,6 +1,7 @@
 const headers = {'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'};
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers});
-const types=new Set(['page.created','page.properties_updated','page.deleted','page.undeleted','page.moved','data_source.schema_updated']);
+const pageTypes=new Set(['page.created','page.properties_updated','page.deleted','page.undeleted','page.moved']);
+const sourceTypes=new Set(['data_source.created','data_source.deleted','data_source.undeleted','data_source.moved','data_source.schema_updated']);
 const encode=value=>new TextEncoder().encode(value);
 export const pageId=value=>typeof value==='string' && /^[a-f0-9]{8}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{12}$/i.test(value) ? value.replaceAll('-','').toLowerCase().replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/,'$1-$2-$3-$4-$5') : null;
 
@@ -66,9 +67,10 @@ export class BlogSync {
     }
     if (!await validSignature(raw,request.headers.get('X-Notion-Signature'),token)) return json({error:'Invalid signature'},401);
     if (payload.workspace_id!==this.env.WORKSPACE_ID) return json({error:'Workspace mismatch'},403);
-    if (!types.has(payload.type)) return json({ignored:true});
-    const id=pageId(payload.entity?.id);
-    if (!id || payload.entity?.type!=='page') return json({ignored:true});
+    if (!pageTypes.has(payload.type) && !sourceTypes.has(payload.type)) return json({ignored:true});
+    const id=pageTypes.has(payload.type)?pageId(payload.entity?.id):null;
+    if (pageTypes.has(payload.type) && (!id || payload.entity?.type!=='page')) return json({ignored:true});
+    if (sourceTypes.has(payload.type) && payload.entity?.type!=='data_source') return json({ignored:true});
     const time=Date.parse(payload.timestamp);
     if (!payload.id || !Number.isFinite(time) || Math.abs(Date.now()-time)>7*86400000) return json({error:'Invalid event'},400);
     const seen=await this.ctx.storage.get('seen') || [];
