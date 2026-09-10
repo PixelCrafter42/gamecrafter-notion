@@ -1,0 +1,5 @@
+---
+import {site} from '../../site.config';import BaseLayout from './BaseLayout.astro';import PostCard from './PostCard.astro';const{posts,section}=Astro.props;
+---
+<BaseLayout title={`${section.navLabel} · ${site.name}`} description={section.description||`${site.name} 的${section.navLabel}内容。`}><div class="archive ap-shell ap-page"><header><h1>{section.heading}</h1><p>{section.description||`共 ${posts.length} 篇，按发布时间排序。`}</p></header><ul>{posts.map(post=><PostCard {post}/>)}</ul>{!posts.length&&<p class="ap-empty">还没有公开内容。</p>}</div></BaseLayout>
+<style>.archive{padding-top:3rem}header{margin-bottom:2.5rem}h1{margin:0 0 .6rem;font-size:2.35rem;line-height:1.2}header p{margin:0;color:var(--ap-muted)}ul{margin:0;padding:0;list-style:none}@media(max-width:640px){.archive{padding-top:2rem}h1{font-size:2rem}}</style>

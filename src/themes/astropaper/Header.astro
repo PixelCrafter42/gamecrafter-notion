@@ -1,0 +1,33 @@
+---
+import { site } from '../../site.config';
+import Icon from './Icon.astro';
+const links=site.sections.filter(section=>section.showInNav&&section.path!=='/').sort((a,b)=>a.navOrder-b.navOrder).map(section=>({href:`${section.path}/`,label:section.navLabel}));
+---
+<a class="skip" href="#main-content">跳到正文</a>
+<header class="ap-shell">
+  <div class="bar">
+    <a class="brand" href="/">{site.name}</a>
+    <button class="menu-button" type="button" aria-label="打开导航" aria-expanded="false" data-menu-button><Icon name="menu"/><span class="close"><Icon name="close"/></span></button>
+    <nav data-menu>
+      {links.map(link=><a class:list={{active:Astro.url.pathname===link.href||(link.href!=='/'&&Astro.url.pathname.startsWith(link.href))}} href={link.href}>{link.label}</a>)}
+      {site.features.rss&&<a class="icon-link" href="/rss.xml" aria-label="RSS"><Icon name="rss"/></a>}
+      {site.features.theme&&<button class="theme-button" type="button" data-theme-toggle aria-label="切换明暗主题"><span class="moon"><Icon name="moon"/></span><span class="sun"><Icon name="sun"/></span></button>}
+    </nav>
+  </div>
+</header>
+<style>
+  .skip{position:fixed;left:1rem;top:-5rem;z-index:100;padding:.5rem .75rem;background:var(--ap-bg);color:var(--ap-accent)}.skip:focus{top:1rem}
+  header{padding-top:0}.bar{position:relative;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--ap-border);padding:1.5rem 0}
+  .brand{font-size:1.5rem;font-weight:600;line-height:1;text-decoration:none;white-space:nowrap}
+  nav{display:flex;align-items:center;justify-content:flex-end;gap:1.25rem}nav a{font-weight:500;text-decoration:none}nav a:hover,nav a.active{color:var(--ap-accent)}nav a.active{text-decoration:underline wavy 2px;text-underline-offset:8px}
+  .icon-link,.theme-button{display:grid;place-items:center;width:2rem;height:2rem;padding:0;border:0;background:transparent}.icon-link svg,.theme-button svg{width:1.5rem;height:1.5rem}.theme-button{position:relative;cursor:pointer}.theme-button span{position:absolute;display:grid}.sun{transform:scale(0) rotate(90deg)}:global(:root[data-theme='dark']) .moon{transform:scale(0) rotate(-90deg)}:global(:root[data-theme='dark']) .sun{transform:scale(1) rotate(0)}
+  .menu-button{display:none;border:0;background:transparent;padding:.5rem}.menu-button .close{display:none}
+  @media(max-width:640px){.bar{align-items:flex-start;padding:1rem 0}.brand{padding:.45rem 0;font-size:1.25rem}.menu-button{display:grid;place-items:center}nav{position:absolute;top:100%;right:0;z-index:20;display:none;width:11rem;grid-template-columns:1fr 1fr;gap:.25rem;padding:.65rem;border:1px solid var(--ap-border);background:var(--ap-bg)}nav.open{display:grid}nav a{grid-column:1/-1;padding:.55rem;text-align:center}.icon-link,.theme-button{justify-self:center}.menu-button[aria-expanded='true']>svg{display:none}.menu-button[aria-expanded='true'] .close{display:grid}}
+</style>
+<script>
+  const init=()=>{
+    const button=document.querySelector('[data-menu-button]');const menu=document.querySelector('[data-menu]');
+    if(button&&menu&&!button.dataset.ready){button.dataset.ready='true';button.addEventListener('click',()=>{const open=button.getAttribute('aria-expanded')==='true';button.setAttribute('aria-expanded',String(!open));button.setAttribute('aria-label',open?'打开导航':'关闭导航');menu.classList.toggle('open',!open);});}
+    const theme=document.querySelector('[data-theme-toggle]');if(theme&&!theme.dataset.ready){theme.dataset.ready='true';theme.addEventListener('click',()=>{const dark=document.documentElement.dataset.theme==='dark'||(document.documentElement.dataset.theme==='system'&&matchMedia('(prefers-color-scheme:dark)').matches);const next=dark?'light':'dark';document.documentElement.dataset.theme=next;try{localStorage.setItem('gamecrafter-color-theme',next)}catch{}});}
+  };init();document.addEventListener('astro:page-load',init);
+</script>

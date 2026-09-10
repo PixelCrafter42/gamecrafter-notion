@@ -1,0 +1,13 @@
+---
+import Icon from './Icon.astro';
+const {post}=Astro.props;
+const data=post.data;
+const base=data.modulePath==='/'?'':data.modulePath;
+const href=`${base}/${post.id}/`;
+---
+<li class="post-card">
+  <a class="title" href={href}><h3>{data.title}</h3></a>
+  <div class="date"><Icon name="calendar" size={16}/><time datetime={data.pubDate.toISOString()}>{data.pubDate.toLocaleDateString('zh-CN',{year:'numeric',month:'short',day:'numeric'})}</time></div>
+  {data.description&&<p>{data.description}</p>}
+</li>
+<style>.post-card{margin:1.55rem 0}.title{display:inline-block;color:var(--ap-accent);font-size:1.08rem;font-weight:500;text-decoration:none}.title:hover{text-decoration:underline dashed}.title h3{margin:0;font:inherit}.date{display:flex;align-items:center;gap:.4rem;margin:.2rem 0;color:var(--ap-muted);font-size:.82rem}.date svg{stroke-width:1.6}p{margin:.25rem 0 0;line-height:1.55}</style>

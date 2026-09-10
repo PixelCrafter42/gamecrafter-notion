@@ -1,0 +1,5 @@
+---
+import{site}from'../../site.config';import BaseLayout from'./BaseLayout.astro';import ThoughtCard from'./ThoughtCard.astro';import Icon from'./Icon.astro';const{thought,section}=Astro.props;
+---
+<BaseLayout title={`${thought.data.title} · ${site.name}`} description={thought.data.description}><div class="detail ap-shell ap-page"><ThoughtCard {thought} detail/><a class="back" href={`${section.path}/`}><Icon name="arrowLeft" size={16}/> 返回{section.navLabel}</a></div></BaseLayout>
+<style>.detail{padding-top:3rem}.back{display:inline-flex;align-items:center;gap:.3rem;margin-top:2rem;color:var(--ap-accent)}@media(max-width:640px){.detail{padding-top:2rem}}</style>

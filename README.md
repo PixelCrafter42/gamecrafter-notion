@@ -45,11 +45,9 @@ Worker Durable Object 保存每篇文章最后一次请求的版本及全量请�
 
 扩展栏目时遵循“控制信息在栏目管理、内容字段在独立数据源”的结构。所有内容数据源共享标题、摘要、发布状态、发布日期、标签、路径、封面和精选字段，再增加模块专属字段。使用现有布局只需新增数据源和栏目记录；增加新的页面形态时，在 `notion.config.json` 注册布局适配器并为主题增加对应组件，同步核心和其他数据源无需改动。同步开始时会从数据库容器发现各数据源 ID，因此移动或新增数据源不需要增加 Cloudflare 环境变量。
 
-当前支持 `Navfolio` 和 `Quiet Publication` 两套主题，默认使用 Navfolio。在 Notion「站点设置」的「主题」字段选择后会自动重新构建网站。`src/theme.ts` 是主题注册表，两套组件分别位于 `src/themes/navfolio/` 和 `src/themes/quiet-publication/`。Notion 同步、内容 URL 与主题目录彼此独立；以后增加主题只需实现同一组页面组件并注册，不需要修改同步 Worker。
+当前只保留 `AstroPaper` 主题，Notion「站点设置」的「主题」字段也只提供这一项。`src/theme.ts` 保留统一主题入口，方便以后新增主题；Notion 同步、内容 URL 与主题目录彼此独立。
 
-Navfolio 适配器参考了 [Navfolio](https://github.com/dodolalorc/astro-navfolio) 的安静个人主页、柔和色盘和卡片式信息结构，并继续使用本站自己的 Notion 内容模型。想法页保留单列时间流。Quiet Publication 仍可随时切回，其页面标题字号也已统一收紧。
-
-Navfolio 的色彩和尺寸变量位于 `src/themes/navfolio/styles/tokens.css`，Quiet Publication 的首屏配置位于 `src/themes/quiet-publication/theme.config.ts`。两套主题都可独立调整，不影响 Notion 内容和页面 URL。
+AstroPaper 适配器位于 `src/themes/astropaper/`，参考 [AstroPaper](https://github.com/satnaing/astro-paper) 的窄栏排版、等宽字体、文章列表、明暗配色和无障碍交互，并继续使用本站的 Notion 内容模型。
 
 Pages 生产环境加密密钥：NOTION_TOKEN（博客后台只读）、SYNC_KEY（与 Worker PUBLISH_KEY 一致）。
 Worker 位于 workers/notion-webhook，密钥为 SETUP_KEY、PUBLISH_KEY、DEPLOY_HOOK_URL。
@@ -79,4 +77,4 @@ NOTION_CLI_SCRIPT 可指向已登录 ntn 入口，在本地显式全量同步；
 配置 NOTION_TOKEN 和 SYNC_KEY 时执行云端同样的增量流程。
 Pages 构建命令 npm run build，输出 dist，分支 main。
 Worker 根目录 workers/notion-webhook，部署命令 npx wrangler deploy。
-主题样式分别位于 `src/themes/navfolio/styles/` 和 `src/themes/quiet-publication/styles/`。
+主题样式位于 `src/themes/astropaper/styles/`。

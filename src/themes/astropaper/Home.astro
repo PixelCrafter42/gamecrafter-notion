@@ -1,0 +1,31 @@
+---
+import { site } from '../../site.config';
+import BaseLayout from './BaseLayout.astro';
+import Icon from './Icon.astro';
+import PostCard from './PostCard.astro';
+const {posts,projects=[]}=Astro.props;
+const all=[...posts,...projects].sort((a,b)=>b.data.pubDate.valueOf()-a.data.pubDate.valueOf());
+const featured=all.filter(item=>item.data.featured);
+const recent=all.filter(item=>!item.data.featured).slice(0,5);
+const writing=site.sections.find(section=>section.key==='writing');
+const iconFor=(label:string)=>label==='GitHub'?'github':label==='X'?'x':label==='邮箱'?'mail':'arrowUpRight';
+---
+<BaseLayout>
+  <div class="home ap-shell ap-page">
+    <section class="hero ap-rule">
+      <div class="title-row"><h1>{site.pages.about.title||'你好'}</h1>{site.features.rss&&<a href="/rss.xml" aria-label="RSS"><Icon name="rss" size={20}/></a>}</div>
+      <p>{site.description}</p>
+      {site.author.bio&&<p>{site.author.bio}</p>}
+      {site.social.length>0&&<div class="social-row"><span>社交链接：</span><div>{site.social.map(item=><a href={item.href} rel="me" aria-label={item.label}><Icon name={iconFor(item.label)} /></a>)}</div></div>}
+    </section>
+    {featured.length>0&&<section class="feed ap-rule"><h2>精选</h2><ul>{featured.map(item=><PostCard post={item}/>)}</ul></section>}
+    {recent.length>0&&<section class="feed"><h2>最近更新</h2><ul>{recent.map(item=><PostCard post={item}/>)}</ul></section>}
+    <div class="all"><a href={`${writing?.path||'/blog'}/`}>全部文章 <Icon name="arrowRight" size={18}/></a></div>
+  </div>
+</BaseLayout>
+<style>
+  .home{padding-bottom:2rem}.hero{padding:3rem 0 1.5rem}.title-row{display:flex;align-items:flex-end;gap:.2rem;margin:1rem 0 1.45rem}.title-row h1{margin:0;font-size:clamp(2.5rem,7vw,3rem);line-height:1;font-weight:700;letter-spacing:-.04em}.title-row a{display:grid;color:var(--ap-accent)}
+  .hero>p{max-width:46rem;margin:.45rem 0;line-height:1.55}.social-row{display:flex;align-items:center;gap:.5rem;margin-top:1.3rem}.social-row>div{display:flex;gap:.65rem}.social-row a{display:grid}.social-row svg{width:1.45rem;height:1.45rem}
+  .feed{padding:2.8rem 0 1.35rem}.feed h2{margin:0 0 1.4rem;font-size:1.5rem;letter-spacing:.03em}.feed ul{margin:0;padding:0;list-style:none}.all{margin:2rem 0;text-align:center}.all a{display:inline-flex;align-items:center;gap:.25rem;text-decoration:none}.all a:hover{text-decoration:underline dashed}
+  @media(max-width:640px){.hero{padding-top:2rem}.title-row{margin:.75rem 0 1.2rem}.feed{padding-top:2.2rem}.social-row{align-items:flex-start;flex-direction:column}}
+</style>

@@ -1,0 +1,19 @@
+---
+import SEO from './SEO.astro';
+import Header from './Header.astro';
+import Footer from './Footer.astro';
+import './styles/global.css';
+const {title,description,canonical,type,structuredData}=Astro.props;
+---
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <SEO {title} {description} {canonical} {type} {structuredData}/>
+    <script is:inline>try{document.documentElement.dataset.theme=localStorage.getItem('gamecrafter-color-theme')||'system'}catch{document.documentElement.dataset.theme='system'}</script>
+  </head>
+  <body>
+    <Header/>
+    <main id="main-content"><slot/></main>
+    <Footer/>
+  </body>
+</html>
