@@ -7,8 +7,8 @@ const years = [...new Set(posts.map(post => post.data.pubDate.getUTCFullYear()))
 ---
 <BaseLayout title={`写作 · ${site.name}`} description={`${site.name} 的全部文章与记录。`}>
   <header class="page-head container">
-    <p class="eyebrow">Writing</p>
-    <h1>把值得留下的事情写下来。</h1>
+    <p class="eyebrow">{site.pages.writing.eyebrow}</p>
+    <h1>{site.pages.writing.title}</h1>
     <p>共 {posts.length} 篇，按发布时间排序。</p>
   </header>
   {posts.length > 0 ? years.map(year => <section class="container year" aria-label={`${year} 年文章`}>

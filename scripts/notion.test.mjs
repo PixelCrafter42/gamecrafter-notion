@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import {metadata,collectSnapshot,collectSiteConfig} from './sync-notion.mjs';
 import {richText,renderBlocks} from './notion-render.mjs';
 
-const fields={title:'标题',description:'摘要',status:'发布状态',published:'已发布',date:'发布日期',tags:'标签',slug:'文章链接'};
+const fields={title:'标题',description:'摘要',status:'发布状态',published:'已发布',date:'发布日期',tags:'标签',slug:'文章链接',type:'内容类型',article:'文章',project:'项目',featured:'精选',projectStatus:'项目状态',projectType:'项目类型',projectUrl:'项目主页',repository:'代码仓库',cover:'封面'};
 const config={fields,dataSourceId:'db',site:'https://gamecrafter.fun'};
 const rt=text=>[{type:'text',plain_text:text,text:{content:text}}];
-const page=(id='one',status='已发布')=>({id,created_time:'2026-09-09T00:00:00Z',last_edited_time:'2026-09-09T00:00:00Z',properties:{标题:{title:rt(id)},摘要:{rich_text:[]},发布状态:{select:{name:status}},发布日期:{date:null},标签:{multi_select:[]},文章链接:{rich_text:rt(id)}}});
-const schema={properties:Object.fromEntries([['title','title'],['description','rich_text'],['status','select'],['date','date'],['tags','multi_select'],['slug','rich_text']].map(([key,type])=>[fields[key],{type}]))};
+const page=(id='one',status='已发布',kind='文章')=>({id,created_time:'2026-09-09T00:00:00Z',last_edited_time:'2026-09-09T00:00:00Z',properties:{标题:{title:rt(id)},摘要:{rich_text:[]},发布状态:{select:{name:status}},发布日期:{date:null},标签:{multi_select:[]},文章链接:{rich_text:rt(id)},内容类型:{select:{name:kind}},精选:{checkbox:false},项目状态:{select:null},项目类型:{rich_text:[]},项目主页:{url:null},代码仓库:{url:null},封面:{files:[]}}});
+const schema={properties:Object.fromEntries([['title','title'],['description','rich_text'],['status','select'],['date','date'],['tags','multi_select'],['slug','rich_text'],['type','select'],['featured','checkbox'],['projectStatus','select'],['projectType','rich_text'],['projectUrl','url'],['repository','url'],['cover','files']].map(([key,type])=>[fields[key],{type}]))};
 const block=text=>({id:'block',type:'paragraph',paragraph:{rich_text:rt(text)}});
 
 test('drafts, archived and trashed pages never publish',()=>{
@@ -53,6 +53,15 @@ test('incremental duplicate slug cannot overwrite an unrelated article',async()=
 test('slugs reject traversal and unsafe path syntax',()=>{
   for (const slug of ['../secret','a/b','<script>','A B','a?x=1']) assert.throws(()=>metadata(page(slug),fields));
 });
+test('projects use their own metadata and route kind',()=>{
+  const value=page('tool','已发布','项目');
+  value.properties.精选.checkbox=true;
+  value.properties.项目状态.select={name:'进行中'};
+  value.properties.项目类型.rich_text=rt('网站');
+  value.properties.项目主页.url='https://example.com';
+  const result=metadata(value,fields);
+  assert.equal(result.kind,'project');assert.equal(result.featured,true);assert.equal(result.projectStatus,'进行中');assert.equal(result.projectType,'网站');
+});
 test('rich text escapes HTML and blocks executable link schemes',()=>{
   assert.equal(richText([{type:'text',plain_text:'<script>bad</script>',href:'javascript:alert(1)'}]),'&lt;script&gt;bad&lt;/script&gt;');
   assert.match(richText([{...rt('safe')[0],href:'https://example.com/?q="'}]),/href="https:\/\/example.com/);
@@ -86,19 +95,24 @@ test('duplicate slugs, schema changes, API failure and concurrent unpublishing f
 });
 
 test('site settings map one Notion row to safe public configuration',async()=>{
-  const siteFields={name:'站点名称',description:'简介',authorName:'作者名称',authorBio:'作者简介',avatar:'头像',email:'邮箱',github:'GitHub',x:'X',rss:'显示 RSS',theme:'显示明暗切换'};
+  const siteFields={name:'站点名称',description:'简介',authorName:'作者名称',authorBio:'作者简介',avatar:'头像',email:'邮箱',github:'GitHub',x:'X',rss:'显示 RSS',theme:'显示明暗切换',showProjects:'显示项目',showAbout:'显示关于',homeNav:'首页导航',homeWritingTitle:'首页写作标题',homeAboutTitle:'首页关于标题',homeAboutDescription:'首页关于简介',writingNav:'写作导航',writingEyebrow:'写作页眉',writingTitle:'写作页标题',projectsNav:'项目导航',projectsEyebrow:'项目页眉',projectsTitle:'项目页标题',projectsDescription:'项目页简介',aboutNav:'关于导航',aboutEyebrow:'关于页眉',aboutTitle:'关于页标题',aboutDescription:'关于页简介'};
   const siteConfig={databaseId:'settings',fields:siteFields};
   const properties={
     站点名称:{title:rt('Craft4Fun')},简介:{rich_text:rt('记录。')},作者名称:{rich_text:rt('Crafter')},作者简介:{rich_text:rt('慢慢写。')},
     头像:{files:[{type:'file',file:{url:'https://example.com/avatar.png'}}]},邮箱:{email:'hello@example.com'},GitHub:{url:'https://github.com/example'},X:{url:null},
-    '显示 RSS':{checkbox:true},显示明暗切换:{checkbox:false},
+    '显示 RSS':{checkbox:true},显示明暗切换:{checkbox:false},显示项目:{checkbox:true},显示关于:{checkbox:true},
+    首页导航:{rich_text:rt('首页')},首页写作标题:{rich_text:rt('文章')},首页关于标题:{rich_text:rt('认识我')},首页关于简介:{rich_text:rt('简介')},
+    写作导航:{rich_text:rt('写作')},写作页眉:{rich_text:rt('Writing')},写作页标题:{rich_text:rt('写下来')},
+    项目导航:{rich_text:rt('项目')},项目页眉:{rich_text:rt('Projects')},项目页标题:{rich_text:rt('作品')},项目页简介:{rich_text:rt('项目简介')},
+    关于导航:{rich_text:rt('关于')},关于页眉:{rich_text:rt('About')},关于页标题:{rich_text:rt('关于我')},关于页简介:{rich_text:rt('关于简介')},
   };
-  const settingsSchema={properties:Object.fromEntries(Object.entries({name:'title',description:'rich_text',authorName:'rich_text',authorBio:'rich_text',avatar:'files',email:'email',github:'url',x:'url',rss:'checkbox',theme:'checkbox'}).map(([key,type])=>[siteFields[key],{type}]))};
-  const request=async path=>path==='databases/settings'?{data_sources:[{id:'source'}]}:path==='data_sources/source'?settingsSchema:{results:[{properties}]};
+  const settingsSchema={properties:Object.fromEntries(Object.entries({name:'title',description:'rich_text',authorName:'rich_text',authorBio:'rich_text',avatar:'files',email:'email',github:'url',x:'url',rss:'checkbox',theme:'checkbox',showProjects:'checkbox',showAbout:'checkbox',homeNav:'rich_text',homeWritingTitle:'rich_text',homeAboutTitle:'rich_text',homeAboutDescription:'rich_text',writingNav:'rich_text',writingEyebrow:'rich_text',writingTitle:'rich_text',projectsNav:'rich_text',projectsEyebrow:'rich_text',projectsTitle:'rich_text',projectsDescription:'rich_text',aboutNav:'rich_text',aboutEyebrow:'rich_text',aboutTitle:'rich_text',aboutDescription:'rich_text'}).map(([key,type])=>[siteFields[key],{type}]))};
+  const request=async path=>path==='databases/settings'?{data_sources:[{id:'source'}]}:path==='data_sources/source'?settingsSchema:path.startsWith('blocks/')?{results:[block('关于正文')],has_more:false}:{results:[{id:'settings-page',properties}]};
   const value=await collectSiteConfig({config:{siteConfig},request,media:async()=>'/notion-media/avatar.png'});
   assert.equal(value.name,'Craft4Fun');assert.equal(value.avatar.src,'/notion-media/avatar.png');assert.equal(value.author.email,'hello@example.com');
   assert.deepEqual(value.social,[{label:'GitHub',href:'https://github.com/example'},{label:'邮箱',href:'mailto:hello@example.com'}]);
-  assert.deepEqual(value.features,{rss:true,theme:false});
+  assert.deepEqual(value.features,{rss:true,theme:false,projects:true,about:true});
+  assert.equal(value.pages.about.html,'<p>关于正文</p>');
   properties.GitHub.url='javascript:alert(1)';
   await assert.rejects(()=>collectSiteConfig({config:{siteConfig},request,media:async()=>''}),/HTTPS/);
 });

@@ -2,15 +2,57 @@
   "name": "Craft4Fun",
   "title": "Craft4Fun",
   "description": "想法、尝试与记录。",
-  "avatar": null,
+  "avatar": {
+    "src": "/notion-media/a225a44e6603b6c7d5d7d2f5324b8c10032a386a88d28890dcd27339ab813bc7.png",
+    "alt": "Craft4Fun"
+  },
   "author": {
     "name": "Craft4Fun",
-    "bio": "把值得留下的事情，慢慢写下来。",
+    "bio": "Play，Make，Learn",
     "email": ""
   },
-  "social": [],
+  "social": [
+    {
+      "label": "X",
+      "href": "https://x.com/zzciweb"
+    }
+  ],
+  "navigation": {
+    "home": "首页",
+    "writing": "写作",
+    "projects": "项目",
+    "about": "关于"
+  },
+  "pages": {
+    "home": {
+      "writingTitle": "写作",
+      "aboutTitle": "慢慢写，慢慢积累。",
+      "aboutDescription": "这里用来存放想法、尝试，以及值得留下的记录。"
+    },
+    "writing": {
+      "eyebrow": "Writing",
+      "title": "把值得留下的事情写下来。"
+    },
+    "projects": {
+      "eyebrow": "Projects",
+      "title": "做过的事。",
+      "description": "一些正在进行、持续维护或已经完成的项目。"
+    },
+    "about": {
+      "eyebrow": "About",
+      "title": "关于这个博客",
+      "description": "一个存放想法、项目与记录的地方。",
+      "html": "<p>欢迎来到 Craft4Fun。</p><p>这里会慢慢积累文章、项目、尝试和日常记录。内容会从 Notion 发布到独立站点，并保留稳定链接、RSS 和深色模式。</p><p>如果愿意，可以通过 <a href=\"https://gamecrafter.fun/rss.xml\" rel=\"noopener noreferrer\">RSS</a> 订阅更新。</p>"
+    }
+  },
   "features": {
+    "rss": true,
     "theme": true,
-    "rss": true
+    "projects": true,
+    "about": true
+  },
+  "sourcePageId": "3d77448d-2ab1-8039-8297-fda867f1172c",
+  "mediaIndex": {
+    "d42711f26ad30fdda412f60c788f3dfe21e1227a1ba581e72f0deedf7e6eb4f8": "a225a44e6603b6c7d5d7d2f5324b8c10032a386a88d28890dcd27339ab813bc7.png"
   }
 }

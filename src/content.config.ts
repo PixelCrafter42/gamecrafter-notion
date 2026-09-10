@@ -17,4 +17,22 @@ const blog = defineCollection({
     }),
 });
 
-export const collections = { blog };
+const projects = defineCollection({
+  loader: file("src/data/notion-projects.json"),
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    html: z.string(),
+    pubDate: z.coerce.date(),
+    tags: z.array(z.string()).default([]),
+    draft: z.boolean().default(false),
+    featured: z.boolean().default(false),
+    projectStatus: z.string().default(""),
+    projectType: z.string().default(""),
+    projectUrl: z.string().default(""),
+    repository: z.string().default(""),
+    cover: z.string().default(""),
+  }),
+});
+
+export const collections = { blog, projects };

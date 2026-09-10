@@ -14,7 +14,24 @@
       "github": "GitHub",
       "x": "X",
       "rss": "显示 RSS",
-      "theme": "显示明暗切换"
+      "theme": "显示明暗切换",
+      "showProjects": "显示项目",
+      "showAbout": "显示关于",
+      "homeNav": "首页导航",
+      "homeWritingTitle": "首页写作标题",
+      "homeAboutTitle": "首页关于标题",
+      "homeAboutDescription": "首页关于简介",
+      "writingNav": "写作导航",
+      "writingEyebrow": "写作页眉",
+      "writingTitle": "写作页标题",
+      "projectsNav": "项目导航",
+      "projectsEyebrow": "项目页眉",
+      "projectsTitle": "项目页标题",
+      "projectsDescription": "项目页简介",
+      "aboutNav": "关于导航",
+      "aboutEyebrow": "关于页眉",
+      "aboutTitle": "关于页标题",
+      "aboutDescription": "关于页简介"
     }
   },
   "site": "https://gamecrafter.fun",
@@ -26,6 +43,15 @@
     "published": "已发布",
     "date": "发布日期",
     "tags": "标签",
-    "slug": "文章链接"
+    "slug": "文章链接",
+    "type": "内容类型",
+    "article": "文章",
+    "project": "项目",
+    "featured": "精选",
+    "projectStatus": "项目状态",
+    "projectType": "项目类型",
+    "projectUrl": "项目主页",
+    "repository": "代码仓库",
+    "cover": "封面"
   }
 }

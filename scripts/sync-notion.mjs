@@ -9,19 +9,37 @@ export function metadata(page, fields) {
   if (page.archived || page.in_trash || page.is_archived || page.properties?.[fields.status]?.select?.name !== fields.published) return null;
   const p = page.properties;
   const title = plainText(p[fields.title]?.title).trim();
-  if (!title) throw new Error('已发布文章必须填写标题');
+  if (!title) throw new Error('已发布内容必须填写标题');
   const id = plainText(p[fields.slug]?.rich_text).trim() || page.id.replaceAll('-', '');
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) throw new Error('文章链接只能使用小写英文字母、数字和短横线');
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) throw new Error('内容链接只能使用小写英文字母、数字和短横线');
   const rawDate = p[fields.date]?.date?.start || page.created_time;
-  if (!rawDate || Number.isNaN(Date.parse(rawDate))) throw new Error('文章发布日期无效');
-  return {id, title, description:plainText(p[fields.description]?.rich_text).trim() || title, pubDate:new Date(rawDate).toISOString(), tags:(p[fields.tags]?.multi_select ?? []).map(t=>t.name), draft:false};
+  if (!rawDate || Number.isNaN(Date.parse(rawDate))) throw new Error('内容发布日期无效');
+  const typeName=p[fields.type]?.select?.name;
+  if (typeName && ![fields.article,fields.project].includes(typeName)) throw new Error('无法识别的内容类型：'+typeName);
+  const kind=typeName===fields.project?'project':'article';
+  const publicUrl=(field,label)=>{
+    const value=p[field]?.url;
+    if (!value) return '';
+    const href=safeUrl(value);
+    if (!href || !href.startsWith('https://')) throw new Error(label+'必须使用 HTTPS');
+    return href;
+  };
+  return {
+    id,kind,title,description:plainText(p[fields.description]?.rich_text).trim() || title,
+    pubDate:new Date(rawDate).toISOString(),tags:(p[fields.tags]?.multi_select ?? []).map(t=>t.name),draft:false,
+    featured:!!p[fields.featured]?.checkbox,
+    projectStatus:kind==='project'?(p[fields.projectStatus]?.select?.name || ''):'',
+    projectType:kind==='project'?plainText(p[fields.projectType]?.rich_text).trim():'',
+    projectUrl:kind==='project'?publicUrl(fields.projectUrl,'项目主页'):'',
+    repository:kind==='project'?publicUrl(fields.repository,'代码仓库'):'',
+  };
 }
 
 export async function collectSnapshot({ request, config, media, previous=[], targets=null }) {
   if (targets && !targets.length) return structuredClone(previous);
   // Check the schema first: a renamed/missing field must not silently clear the website.
   const source = await request('data_sources/' + config.dataSourceId);
-  for (const [key,type] of [['title','title'],['description','rich_text'],['status','select'],['date','date'],['tags','multi_select'],['slug','rich_text']]) {
+  for (const [key,type] of [['title','title'],['description','rich_text'],['status','select'],['date','date'],['tags','multi_select'],['slug','rich_text'],['type','select'],['featured','checkbox'],['projectStatus','select'],['projectType','rich_text'],['projectUrl','url'],['repository','url'],['cover','files']]) {
     if (source.properties?.[config.fields[key]]?.type !== type) throw new Error('Notion 字段缺失或类型变化：' + config.fields[key]);
   }
   const pages = []; let cursor;
@@ -46,7 +64,8 @@ export async function collectSnapshot({ request, config, media, previous=[], tar
   const retained=targets ? previous.filter(post=>!targeted.has(post.sourcePageId)) : [];
   const ids = new Set(retained.map(post=>post.id));
   for (const {data} of published) { if (ids.has(data.id)) throw new Error('存在重复文章链接：' + data.id); ids.add(data.id); }
-  const links = new Map([...retained.map(post=>[post.sourcePageId,config.site+'/blog/'+post.id+'/']),...published.map(({page,data})=>[page.id,config.site+'/blog/'+data.id+'/'])]);
+  const route=post=>config.site+(post.kind==='project'?'/projects/':'/blog/')+post.id+'/';
+  const links = new Map([...retained.map(post=>[post.sourcePageId,route(post)]),...published.map(({page,data})=>[page.id,route(data)])]);
   const children = async id => {
     const all = []; let next;
     do {
@@ -61,8 +80,10 @@ export async function collectSnapshot({ request, config, media, previous=[], tar
     const mediaIndex={};
     const html = await renderBlocks(await children(page.id), {children,media:body=>media(body,mediaIndex),publishedLinks:links});
     const current = await request('pages/' + page.id);
-    if (!metadata(current,config.fields) || current.last_edited_time !== page.last_edited_time) throw new Error('文章正在编辑或下线，留待下一次同步');
-    posts.push({...data,html,sourcePageId:page.id,mediaIndex});
+    if (!metadata(current,config.fields) || current.last_edited_time !== page.last_edited_time) throw new Error('内容正在编辑或下线，留待下一次同步');
+    const coverFile=page.properties?.[config.fields.cover]?.files?.[0];
+    const cover=coverFile?await media(coverFile,mediaIndex):'';
+    posts.push({...data,cover,html,sourcePageId:page.id,mediaIndex});
   }
   return posts.sort((a,b)=>a.id.localeCompare(b.id));
 }
@@ -74,13 +95,14 @@ export async function collectSiteConfig({request, config, media}) {
   const sources=database.data_sources;
   if (!Array.isArray(sources) || sources.length!==1 || !sources[0]?.id) throw new Error('站点配置数据库来源无效');
   const source=await request('data_sources/'+sources[0].id);
-  const expected={name:'title',description:'rich_text',authorName:'rich_text',authorBio:'rich_text',avatar:'files',email:'email',github:'url',x:'url',rss:'checkbox',theme:'checkbox'};
+  const expected={name:'title',description:'rich_text',authorName:'rich_text',authorBio:'rich_text',avatar:'files',email:'email',github:'url',x:'url',rss:'checkbox',theme:'checkbox',showProjects:'checkbox',showAbout:'checkbox',homeNav:'rich_text',homeWritingTitle:'rich_text',homeAboutTitle:'rich_text',homeAboutDescription:'rich_text',writingNav:'rich_text',writingEyebrow:'rich_text',writingTitle:'rich_text',projectsNav:'rich_text',projectsEyebrow:'rich_text',projectsTitle:'rich_text',projectsDescription:'rich_text',aboutNav:'rich_text',aboutEyebrow:'rich_text',aboutTitle:'rich_text',aboutDescription:'rich_text'};
   for (const [key,type] of Object.entries(expected)) if (source.properties?.[settings.fields[key]]?.type!==type) {
     throw new Error('站点配置字段缺失或类型变化：'+settings.fields[key]);
   }
   const result=await request('data_sources/'+sources[0].id+'/query',{method:'POST',body:{page_size:2,sorts:[{timestamp:'last_edited_time',direction:'descending'}]}});
   if (!Array.isArray(result.results) || result.results.length!==1) throw new Error('站点配置必须且只能保留一条记录');
-  const properties=result.results[0].properties;
+  const page=result.results[0];
+  const properties=page.properties;
   const text=(key,type='rich_text')=>plainText(properties[settings.fields[key]]?.[type]).trim();
   const name=text('name','title');
   if (!name) throw new Error('站点名称不能为空');
@@ -94,13 +116,31 @@ export async function collectSiteConfig({request, config, media}) {
   }
   if (email) social.push({label:'邮箱',href:'mailto:'+email});
   const avatarFile=properties[settings.fields.avatar]?.files?.[0];
-  const avatarIndex={};
-  const avatar=avatarFile ? {src:await media(avatarFile,avatarIndex),alt:authorName} : null;
+  const mediaIndex={};
+  const avatar=avatarFile ? {src:await media(avatarFile,mediaIndex),alt:authorName} : null;
+  const children=async id=>{
+    const all=[];let cursor;
+    do {
+      const value=await request('blocks/'+id+'/children?page_size=100'+(cursor?'&start_cursor='+encodeURIComponent(cursor):''));
+      if (!Array.isArray(value.results) || (value.has_more && !value.next_cursor)) throw new Error('关于页面内容返回不完整');
+      all.push(...value.results);cursor=value.has_more?value.next_cursor:null;
+    } while(cursor);
+    return all;
+  };
+  const aboutHtml=await renderBlocks(await children(page.id),{children,media:body=>media(body,mediaIndex)});
   return {
     name,title:name,description:text('description') || name,avatar,
     author:{name:authorName,bio:text('authorBio'),email},
     social,
-    features:{rss:!!properties[settings.fields.rss]?.checkbox,theme:!!properties[settings.fields.theme]?.checkbox},
+    navigation:{home:text('homeNav')||'首页',writing:text('writingNav')||'写作',projects:text('projectsNav')||'项目',about:text('aboutNav')||'关于'},
+    pages:{
+      home:{writingTitle:text('homeWritingTitle')||'写作',aboutTitle:text('homeAboutTitle')||'慢慢写，慢慢积累。',aboutDescription:text('homeAboutDescription')||'这里用来存放想法、尝试，以及值得留下的记录。'},
+      writing:{eyebrow:text('writingEyebrow')||'Writing',title:text('writingTitle')||'把值得留下的事情写下来。'},
+      projects:{eyebrow:text('projectsEyebrow')||'Projects',title:text('projectsTitle')||'做过的事。',description:text('projectsDescription')},
+      about:{eyebrow:text('aboutEyebrow')||'About',title:text('aboutTitle')||'关于这个博客',description:text('aboutDescription'),html:aboutHtml},
+    },
+    features:{rss:!!properties[settings.fields.rss]?.checkbox,theme:!!properties[settings.fields.theme]?.checkbox,projects:!!properties[settings.fields.showProjects]?.checkbox,about:!!properties[settings.fields.showAbout]?.checkbox},
+    sourcePageId:page.id,mediaIndex,
   };
 }
 
@@ -128,14 +168,14 @@ export async function runSync() {
   const syncedAt=new Date().toISOString();
   const root = resolve(dirname(fileURLToPath(import.meta.url)),'..');
   const config = JSON.parse(await readFile(resolve(root,'notion.config.json'),'utf8'));
-  let previous=[],revision=0,targets=null;
+  let previous=[],previousSiteConfig=null,revision=0,targets=null;
   const remote=process.env.SYNC_KEY;
   if (remote) {
     const response=await fetch(config.site+'/_notion-content.json?t='+Date.now(),{cache:'no-store',signal:AbortSignal.timeout(30000)});
     if (response.ok) {
       const base=await response.json();
       if (base.version!==1 || !Number.isSafeInteger(base.revision) || !Array.isArray(base.posts) || base.posts.some(p=>!p.sourcePageId || typeof p.html!=='string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(p.id))) throw new Error('已发布内容缓存无效');
-      previous=base.posts;revision=base.revision;
+      previous=base.posts;previousSiteConfig=base.siteConfig || null;revision=base.revision;
     } else if (response.status!==404) throw new Error('无法读取已发布内容缓存');
     const planning=await fetch(config.syncWorker+'/plan?since='+revision,{headers:{Authorization:'Bearer '+remote},signal:AbortSignal.timeout(30000)});
     if (!planning.ok) throw new Error('无法获取单篇同步计划');
@@ -146,7 +186,7 @@ export async function runSync() {
   } else if (process.env.CF_PAGES) throw new Error('缺少 SYNC_KEY，停止构建以避免意外全量发布');
   const request = createRequest({token:process.env.NOTION_TOKEN,cliScript:process.env.NOTION_CLI_SCRIPT});
   const assets = new Map();
-  const cachedMedia=Object.assign({},...previous.map(post=>post.mediaIndex || {}));
+  const cachedMedia=Object.assign({},...previous.map(post=>post.mediaIndex || {}),previousSiteConfig?.mediaIndex || {});
   const assetName=/^[a-f0-9]{64}\.(?:jpg|png|gif|webp|avif|pdf|mp4|mp3|m4a|txt)$/;
   const media = async (body,index) => {
     if (body.type==='external') return safeUrl(body.external?.url);
@@ -169,10 +209,10 @@ export async function runSync() {
     assets.set(name,bytes);index[key]=name; return '/notion-media/'+name;
   };
   // Finish every API call before changing any generated file.
-  const posts = await collectSnapshot({request,config,media,previous,targets});
+  const content = await collectSnapshot({request,config,media,previous,targets});
   const siteConfig = await collectSiteConfig({request,config,media});
   // Retain unchanged files from the published CDN instead of re-downloading them from Notion.
-  const needed=[...new Set(posts.flatMap(post=>Object.values(post.mediaIndex || {})))];
+  const needed=[...new Set([...content.flatMap(item=>Object.values(item.mediaIndex || {})),...Object.values(siteConfig?.mediaIndex || {})])];
   let nextAsset=0;
   await Promise.all(Array.from({length:Math.min(6,needed.length)},async()=>{
     while(nextAsset<needed.length) {
@@ -191,18 +231,22 @@ export async function runSync() {
   const dataDir=resolve(root,'src/data'), assetDir=resolve(root,'public/notion-media');
   await mkdir(dataDir,{recursive:true}); await mkdir(assetDir,{recursive:true});
   for (const [name,bytes] of assets) await writeFile(resolve(assetDir,name),bytes);
+  const posts=content.filter(item=>item.kind!=='project');
+  const projects=content.filter(item=>item.kind==='project');
   const output=resolve(dataDir,'notion-posts.json');
   await writeFile(output+'.tmp',JSON.stringify(posts,null,2)+'\n'); await rename(output+'.tmp',output);
+  const projectsOutput=resolve(dataDir,'notion-projects.json');
+  await writeFile(projectsOutput+'.tmp',JSON.stringify(projects,null,2)+'\n'); await rename(projectsOutput+'.tmp',projectsOutput);
   if (siteConfig) await writeFile(resolve(dataDir,'site-config.json'),JSON.stringify(siteConfig,null,2)+'\n');
-  await writeFile(resolve(root,'public/_notion-content.json'),JSON.stringify({version:1,revision,posts,siteConfig})+'\n');
-  await writeFile(resolve(root,'public/_notion-sync.json'),JSON.stringify({syncedAt,revision,mode:targets===null?'full':'incremental',updated:targets===null?posts.length:targets.length})+'\n');
+  await writeFile(resolve(root,'public/_notion-content.json'),JSON.stringify({version:1,revision,posts:content,siteConfig})+'\n');
+  await writeFile(resolve(root,'public/_notion-sync.json'),JSON.stringify({syncedAt,revision,mode:targets===null?'full':'incremental',updated:targets===null?content.length:targets.length})+'\n');
   // Delete only generated hash-named files inside this project's generated asset directory.
   for (const name of await readdir(assetDir)) if (/^[a-f0-9]{64}\.[a-z0-9]+$/.test(name) && !assets.has(name)) {
     const target=resolve(assetDir,name);
     if (dirname(target)!==assetDir || basename(target)!==name) throw new Error('附件路径校验失败');
     await unlink(target);
   }
-  console.log('Notion '+(targets===null?'全量':'单篇增量')+'同步完成：本次读取 '+(targets===null?posts.length:targets.length)+' 篇，合计 '+posts.length+' 篇已发布文章，'+assets.size+' 个附件。');
+  console.log('Notion '+(targets===null?'全量':'单篇增量')+'同步完成：本次读取 '+(targets===null?content.length:targets.length)+' 条，合计 '+posts.length+' 篇文章、'+projects.length+' 个项目，'+assets.size+' 个附件。');
 }
 
 if (process.argv[1] && resolve(process.argv[1])===fileURLToPath(import.meta.url)) runSync().catch(error=>{console.error(error.message);process.exitCode=1;});

@@ -2,5 +2,6 @@
 import { getCollection } from 'astro:content';
 import { Home } from '../theme';
 const posts = (await getCollection('blog', ({data}) => !data.draft)).sort((a,b)=>b.data.pubDate.valueOf()-a.data.pubDate.valueOf());
+const projects = (await getCollection('projects', ({data}) => !data.draft)).sort((a,b)=>b.data.pubDate.valueOf()-a.data.pubDate.valueOf());
 ---
-<Home posts={posts} />
+<Home posts={posts} projects={projects} />

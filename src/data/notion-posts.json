@@ -1,6 +1,7 @@
 [
   {
     "id": "hello-world",
+    "kind": "article",
     "title": "你好",
     "description": "先搭起一个小小的空间，让记录有个落脚点。现在可以在 Notion 中更新。",
     "pubDate": "2026-09-09T00:00:00.000Z",
@@ -8,7 +9,13 @@
       "站点日志"
     ],
     "draft": false,
-    "html": "<p>这个博客开始了。</p><p>先把空间搭起来，之后再慢慢填充。这里会用来存放想法、尝试，以及值得留下的记录。</p><h3>从简单开始</h3><p>页面保持轻量，内容以文字为主。文章会按时间收录在<a href=\"https://gamecrafter.fun/blog/\" rel=\"noopener noreferrer\">归档</a>中，也可以通过 <a href=\"https://gamecrafter.fun/rss.xml\" rel=\"noopener noreferrer\">RSS</a> 订阅。</p><p>慢慢写，慢慢积累。现在，文章可以直接在 Notion 中维护，再通过发布按钮更新到这里。</p>",
+    "featured": false,
+    "projectStatus": "",
+    "projectType": "",
+    "projectUrl": "",
+    "repository": "",
+    "cover": "",
+    "html": "<p>欢迎来到，玩的时代</p>",
     "sourcePageId": "3d67448d-2ab1-81c6-96e7-f5cd127d3c43",
     "mediaIndex": {}
   }
