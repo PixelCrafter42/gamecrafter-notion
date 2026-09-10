@@ -1,0 +1,12 @@
+---
+import { site } from '../../site.config';
+import Icon from './Icon.astro';
+const iconFor=(label:string)=>label==='GitHub'?'github':label==='X'?'x':label==='邮箱'?'mail':'arrowUpRight';
+---
+<footer class="ap-shell">
+  <div class="footer-inner">
+    <div class="socials">{site.social.map(item=><a href={item.href} rel="me" aria-label={item.label}><Icon name={iconFor(item.label)} /></a>)}</div>
+    <p>版权所有 © {new Date().getFullYear()} <span aria-hidden="true"> · </span> {site.author.name}</p>
+  </div>
+</footer>
+<style>.footer-inner{display:flex;flex-direction:row-reverse;align-items:center;justify-content:space-between;margin-top:auto;padding:1rem 0;border-top:1px solid var(--ap-border)}.socials{display:flex;gap:.7rem}.socials a{display:grid;place-items:center}.socials svg{width:1.25rem;height:1.25rem}p{margin:.5rem 0;font-size:.88rem}@media(max-width:640px){.footer-inner{flex-direction:column;gap:.6rem;padding:1.5rem 0}}</style>

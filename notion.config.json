@@ -71,8 +71,7 @@
     }
   },
   "themes": {
-    "Navfolio": "navfolio",
-    "Quiet Publication": "quiet-publication"
+    "AstroPaper": "astropaper"
   },
   "site": "https://gamecrafter.fun",
   "syncWorker": "https://gamecrafter-notion-sync.zzciweb.workers.dev"
