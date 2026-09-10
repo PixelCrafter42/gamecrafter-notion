@@ -1,10 +1,11 @@
 ---
 const { post } = Astro.props;
+const base = post.data.modulePath === '/' ? '' : post.data.modulePath;
 ---
 <article class="post-row">
   <time class="meta" datetime={post.data.pubDate.toISOString()}>{post.data.pubDate.toLocaleDateString('zh-CN', { year:'numeric', month:'2-digit', day:'2-digit' })}</time>
   <div>
-    <h3><a href={`/blog/${post.id}/`}>{post.data.title}</a></h3>
+    <h3><a href={`${base}/${post.id}/`}>{post.data.title}</a></h3>
     <p>{post.data.description}</p>
     {post.data.tags.length > 0 && <div class="tags">{post.data.tags.map((tag: string) => <span class="tag">#{tag}</span>)}</div>}
   </div>

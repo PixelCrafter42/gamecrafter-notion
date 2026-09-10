@@ -8,6 +8,8 @@ const blog = defineCollection({
     z.object({
       title: z.string(),
       description: z.string(),
+      moduleKey: z.string(),
+      modulePath: z.string(),
       html: z.string(),
       pubDate: z.coerce.date(),
       updatedDate: z.coerce.date().optional(),
@@ -22,6 +24,8 @@ const projects = defineCollection({
   schema: z.object({
     title: z.string(),
     description: z.string(),
+    moduleKey: z.string(),
+    modulePath: z.string(),
     html: z.string(),
     pubDate: z.coerce.date(),
     tags: z.array(z.string()).default([]),

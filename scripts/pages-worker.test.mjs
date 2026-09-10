@@ -1,11 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { contentPaths } from './content-routes.mjs';
+import { buildSectionPaths } from '../src/section-routes.mjs';
 
 const source = (await readFile(new URL('./pages-worker.mjs', import.meta.url), 'utf8'))
   .replace('"BUILD_VERSION"', '"revision-test"')
   .replace('["CONTENT_PATHS"]', '["/blog/live", "/blog/live/", "/blog/live/index.html", "/projects/tool", "/projects/tool/", "/projects/tool/index.html"]');
 const { default: worker } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
+
+test('published paths follow each Notion module path',()=>{
+  assert.deepEqual(contentPaths([{id:'note',modulePath:'/research'}]),['/research/note','/research/note/','/research/note/index.html']);
+  assert.throws(()=>contentPaths([{id:'../secret',modulePath:'/research'}]),/无效路径/);
+});
+test('a new article-list section produces index and detail routes without code changes',()=>{
+  const section={key:'research',path:'/research',layout:'文章列表',enabled:true};
+  const post={id:'first-note',data:{moduleKey:'research'}};
+  const routes=buildSectionPaths({sections:[section],posts:[post],projects:[]});
+  assert.deepEqual(routes.map(route=>route.params.path),['research','research/first-note']);
+  assert.equal(routes[0].props.view,'archive');
+  assert.equal(routes[1].props.view,'article');
+});
 
 test('withdrawn article cannot serve a stale body, including direct index.html access', async () => {
   for (const path of ['/blog/draft/', '/blog/draft', '/blog/draft/index.html']) {

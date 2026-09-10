@@ -82,8 +82,10 @@ export async function collectSections({request,config,sources,media}) {
     });
   }
   const keys=new Set(),paths=new Set();
+  const reservedPaths=new Set(['/privacy','/404']);
   for (const section of sections) {
     if (keys.has(section.key) || paths.has(section.path)) throw new Error('栏目标识或路径重复：'+section.key);
+    if (reservedPaths.has(section.path)) throw new Error('栏目路径与系统页面冲突：'+section.path);
     keys.add(section.key);paths.add(section.path);
   }
   if (!sections.some(section=>section.key==='home' && section.enabled)) throw new Error('栏目管理必须保留启用的首页');

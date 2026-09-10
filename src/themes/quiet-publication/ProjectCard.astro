@@ -1,14 +1,15 @@
 ---
 const { project, compact = false } = Astro.props;
 const data = project.data;
+const base = data.modulePath === '/' ? '' : data.modulePath;
 ---
 <article class:list={['project-card', { compact }] }>
-  {data.cover && <a class="cover" href={`/projects/${project.id}/`} tabindex="-1"><img src={data.cover} alt="" loading="lazy" /></a>}
+  {data.cover && <a class="cover" href={`${base}/${project.id}/`} tabindex="-1"><img src={data.cover} alt="" loading="lazy" /></a>}
   <div class="project-meta">
     {data.projectStatus && <span>{data.projectStatus}</span>}
     {data.projectType && <span>{data.projectType}</span>}
   </div>
-  <h3><a href={`/projects/${project.id}/`}>{data.title}</a></h3>
+  <h3><a href={`${base}/${project.id}/`}>{data.title}</a></h3>
   <p>{data.description}</p>
   {data.tags.length > 0 && <div class="tags">{data.tags.map((tag: string) => <span class="tag">#{tag}</span>)}</div>}
 </article>

@@ -2,13 +2,13 @@
 import { site } from '../../site.config';
 import BaseLayout from './BaseLayout.astro';
 import ProjectCard from './ProjectCard.astro';
-const { projects } = Astro.props;
+const { projects, section } = Astro.props;
 ---
-<BaseLayout title={`${site.navigation.projects} · ${site.name}`} description={site.pages.projects.description}>
+<BaseLayout title={`${section.navLabel} · ${site.name}`} description={section.description}>
   <header class="page-head container">
-    <p class="eyebrow">{site.pages.projects.eyebrow}</p>
-    <h1>{site.pages.projects.title}</h1>
-    {site.pages.projects.description && <p>{site.pages.projects.description}</p>}
+    <p class="eyebrow">{section.eyebrow}</p>
+    <h1>{section.heading}</h1>
+    {section.description && <p>{section.description}</p>}
   </header>
   <section class="container list">
     {projects.length > 0 ? projects.map(project => <ProjectCard project={project} />) : <p class="empty">还没有公开项目。</p>}

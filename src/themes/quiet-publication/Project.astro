@@ -2,7 +2,7 @@
 import { site } from '../../site.config';
 import BaseLayout from './BaseLayout.astro';
 import Icon from './Icon.astro';
-const { project } = Astro.props;
+const { project, section } = Astro.props;
 const data = project.data;
 const structuredData = {
   '@context':'https://schema.org','@type':'CreativeWork',name:data.title,description:data.description,
@@ -13,7 +13,7 @@ const structuredData = {
 <BaseLayout title={`${data.title} · ${site.name}`} description={data.description} structuredData={structuredData}>
   <article class="project narrow">
     <header>
-      <p class="eyebrow">{site.pages.projects.eyebrow}{data.projectStatus && ` · ${data.projectStatus}`}</p>
+      <p class="eyebrow">{section.eyebrow}{data.projectStatus && ` · ${data.projectStatus}`}</p>
       <h1>{data.title}</h1>
       <p class="dek">{data.description}</p>
       <div class="meta">{data.projectType && <span>{data.projectType} · </span>}<time datetime={data.pubDate.toISOString()}>{data.pubDate.toLocaleDateString('zh-CN')}</time></div>
@@ -26,7 +26,7 @@ const structuredData = {
     {data.cover && <figure class="hero"><img src={data.cover} alt="" /></figure>}
     <div class="prose"><slot /></div>
   </article>
-  <div class="narrow all"><a href="/projects/">查看全部项目</a></div>
+  <div class="narrow all"><a href={`${section.path}/`}>查看全部{section.navLabel}</a></div>
 </BaseLayout>
 <style>
   .project { padding:5rem 0; }
