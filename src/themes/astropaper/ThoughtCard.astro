@@ -1,5 +1,49 @@
 ---
-import Icon from'./Icon.astro';const{thought,detail=false}=Astro.props;const data=thought.data;const base=data.modulePath==='/'?'':data.modulePath;const href=`${base}/${thought.id}/`;const transitionName=`thought-${String(thought.id).replace(/[^a-zA-Z0-9_-]/g,'-')}`;
+import { site } from '../../site.config';
+import Icon from './Icon.astro';
+
+const {thought,detail=false}=Astro.props;
+const data=thought.data;
+const base=data.modulePath==='/'?'':data.modulePath;
+const href=`${base}/${thought.id}/`;
+const transitionName=`thought-${String(thought.id).replace(/[^a-zA-Z0-9_-]/g,'-')}`;
+const xProfile=site.social.find(item=>item.label.toLowerCase()==='x');
+let handle=`@${site.author.name.replace(/\s+/g,'')}`;
+if(xProfile){try{handle=`@${new URL(xProfile.href).pathname.split('/').filter(Boolean)[0]||site.author.name}`;}catch{}}
+const date=data.pubDate.toLocaleString('zh-CN',data.publishedHasTime
+  ?{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}
+  :{year:'numeric',month:'short',day:'numeric'});
 ---
-<article class:list={['thought',{detail}]}><div class="date"><Icon name="calendar" size={16}/><time datetime={data.pubDate.toISOString()}>{data.pubDate.toLocaleString('zh-CN',data.publishedHasTime?{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}:{year:'numeric',month:'short',day:'numeric'})}</time></div>{detail?<h1 style={{viewTransitionName:transitionName}}>{data.title}</h1>:<a class="title" href={href}><h2 style={{viewTransitionName:transitionName}}>{data.title}</h2></a>}{data.description&&data.description!==data.title&&<p>{data.description}</p>}{detail&&data.html&&<div class="app-prose max-w-app body" set:html={data.html}/>} {!detail&&<a class="more" href={href}>打开 <Icon name="arrowUpRight" size={15}/></a>}</article>
-<style>.thought{margin:1.8rem 0}.date{display:flex;align-items:center;gap:.4rem;color:var(--ap-muted);font-size:.82rem}.title{display:inline-block;color:var(--ap-accent);text-decoration:none}.title:hover{text-decoration:underline dashed}h1,h2{margin:.35rem 0;font-size:1.15rem;line-height:1.45}h1{font-size:2.35rem}p{margin:.3rem 0}.more{display:inline-flex;align-items:center;gap:.2rem;margin-top:.45rem;font-size:.82rem}.body{margin-top:1.5rem}</style>
+<article class:list={['thought',{detail}]}>
+  <a class="avatar" href="/about/" aria-label={`查看 ${site.author.name} 的介绍`}>
+    {site.avatar?<img src={site.avatar.src} alt={site.avatar.alt} width="48" height="48" loading={detail?'eager':'lazy'}/>:<span aria-hidden="true">{site.author.name.slice(0,1)}</span>}
+  </a>
+  <div class="content">
+    <header>
+      <a class="author" href="/about/">{site.author.name}</a>
+      <span class="handle">{handle}</span><span class="dot" aria-hidden="true">·</span>
+      <a class="date" href={href}><time datetime={data.pubDate.toISOString()}>{date}</time></a>
+    </header>
+    {detail
+      ?<h1 class="message" style={{viewTransitionName:transitionName}}>{data.title}</h1>
+      :<a class="message-link" href={href}><h2 class="message" style={{viewTransitionName:transitionName}}>{data.title}</h2></a>}
+    {data.description&&data.description!==data.title&&<p class="summary">{data.description}</p>}
+    {detail&&data.html&&<div class="app-prose body" set:html={data.html}/>}
+    <footer>
+      <a href={href} aria-label="打开这条想法"><Icon name="arrowUpRight" size={16}/><span>{detail?'永久链接':'查看'}</span></a>
+    </footer>
+  </div>
+</article>
+<style>
+  .thought{display:grid;grid-template-columns:3rem minmax(0,1fr);gap:.8rem;padding:1.15rem .15rem;border-bottom:1px solid var(--border);transition:background-color .16s ease}
+  .thought:not(.detail):hover{background:color-mix(in srgb,var(--muted) 22%,transparent)}
+  .avatar{display:block;width:3rem;height:3rem;border-radius:999px;overflow:hidden;background:var(--muted);text-decoration:none}
+  .avatar img{display:block;width:100%;height:100%;object-fit:cover}.avatar span{display:grid;width:100%;height:100%;place-items:center;color:var(--accent);font-weight:700}
+  .content{min-width:0}header{display:flex;min-width:0;align-items:baseline;gap:.35rem;line-height:1.25}
+  .author{overflow:hidden;font-weight:600;text-decoration:none;text-overflow:ellipsis;white-space:nowrap}.author:hover{text-decoration:underline;color:inherit}
+  .handle,.date,.dot{color:var(--muted-foreground);font-size:.84rem}.handle{overflow:hidden;text-overflow:ellipsis}.date{white-space:nowrap;text-decoration:none}.date:hover{text-decoration:underline;color:var(--muted-foreground)}
+  .message-link{display:block;margin-top:.35rem;text-decoration:none;color:inherit}.message-link:hover{color:inherit}.message{margin:.35rem 0 0;font-size:1rem;font-weight:400;line-height:1.6;letter-spacing:0;overflow-wrap:anywhere}.detail .message{font-size:1.08rem}
+  .summary{margin:.3rem 0 0;color:var(--muted-foreground);line-height:1.55}.body{margin-top:1rem;max-width:none}.body:global(> :first-child){margin-top:0}
+  footer{margin-top:.75rem}footer a{display:inline-flex;align-items:center;gap:.3rem;color:var(--muted-foreground);font-size:.8rem;text-decoration:none}footer a:hover{color:var(--accent)}
+  @media(max-width:480px){.thought{grid-template-columns:2.65rem;gap:.65rem;padding-block:1rem}.avatar{width:2.65rem;height:2.65rem}.handle{display:none}.dot{display:none}.date{margin-left:auto;font-size:.78rem}}
+</style>

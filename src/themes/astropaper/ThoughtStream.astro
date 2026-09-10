@@ -6,8 +6,9 @@ import{site}from'../../site.config';import BaseLayout from'./BaseLayout.astro';i
   <main id="main-content" class="app-layout pb-4" data-list-page data-back-url={`${section.path}/`}>
     <h1 class="text-2xl font-semibold sm:text-3xl">{section.heading}</h1>
     {section.description&&<p class="mt-2 mb-6 italic">{section.description}</p>}
-    <section aria-label={section.navLabel}>{thoughts.map(thought=><ThoughtCard {thought}/>)}</section>
+    <section class="stream" aria-label={section.navLabel}>{thoughts.map(thought=><ThoughtCard {thought}/>)}</section>
     {!thoughts.length&&<p class="text-muted-foreground">还没有公开想法。</p>}
   </main>
 </BaseLayout>
+<style>.stream{border-top:1px solid var(--border)}</style>
 <script>const remember=()=>{const list=document.querySelector<HTMLElement>('[data-list-page]');if(list?.dataset.backUrl)sessionStorage.setItem('backUrl',list.dataset.backUrl)};remember();document.addEventListener('astro:page-load',remember);</script>

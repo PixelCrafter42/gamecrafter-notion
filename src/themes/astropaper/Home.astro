@@ -15,8 +15,10 @@ const iconFor=(label:string)=>label==='GitHub'?'github':label==='X'?'x':label===
 <BaseLayout>
   <main id="main-content" data-layout="index" data-home-path="/" class="app-layout my-1">
     <section id="hero" class="border-border border-b pt-8 pb-6">
-      <h1 class="my-4 inline-block text-4xl font-bold sm:my-8 sm:text-5xl">{site.pages.about.title||'你好'}</h1>
-      {site.features.rss&&<a target="_blank" href="/rss.xml" class="inline-block" aria-label="RSS Feed" title="RSS Feed"><IconRss width={20} height={20} class="stroke-accent scale-125 stroke-3"/></a>}
+      <div class="flex items-center justify-between gap-6">
+        <div><h1 class="my-4 inline-block text-4xl font-bold sm:my-8 sm:text-5xl">{site.pages.about.title||'你好'}</h1>{site.features.rss&&<a target="_blank" href="/rss.xml" class="inline-block" aria-label="RSS Feed" title="RSS Feed"><IconRss width={20} height={20} class="stroke-accent scale-125 stroke-3"/></a>}</div>
+        {site.avatar&&<a href="/about/" class="avatar shrink-0" aria-label={`查看 ${site.author.name} 的介绍`}><img src={site.avatar.src} alt={site.avatar.alt} width="88" height="88" loading="eager"/></a>}
+      </div>
       <p>{site.description}</p>
       {site.author.bio&&<p class="mt-2">{site.author.bio}</p>}
       {site.social.length>0&&<div class="mt-4 flex max-sm:flex-col sm:items-center"><div class="me-2 mb-1 whitespace-nowrap sm:mb-0">社交链接：</div><div class="flex flex-wrap items-center gap-1">{site.social.map(item=><a href={item.href} rel="me" class="group p-2 hover:rotate-6 sm:p-1" title={item.label} aria-label={item.label}><Icon name={iconFor(item.label)} size={24}/></a>)}</div></div>}
@@ -26,4 +28,5 @@ const iconFor=(label:string)=>label==='GitHub'?'github':label==='X'?'x':label===
     <div class="my-8 text-center"><a href={`${writing?.path||'/blog'}/`} class="group inline-flex items-center gap-1 hover:text-accent">全部文章<IconArrowRight class="inline-block"/></a></div>
   </main>
 </BaseLayout>
+<style>.avatar{display:block;width:5.5rem;height:5.5rem;overflow:hidden;border:2px solid var(--border);border-radius:999px;transition:transform .2s ease}.avatar:hover{transform:rotate(3deg) scale(1.03)}.avatar img{display:block;width:100%;height:100%;object-fit:cover}@media(max-width:480px){.avatar{width:4.5rem;height:4.5rem}}</style>
 <script>document.addEventListener('astro:page-load',()=>{const main=document.querySelector<HTMLElement>('#main-content');if(main?.dataset.layout)sessionStorage.setItem('backUrl',main.dataset.homePath??'/');});</script>
