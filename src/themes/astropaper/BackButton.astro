@@ -1,0 +1,6 @@
+---
+import IconChevronLeft from './icons/IconChevronLeft.svg';
+const {href='/',label='返回'}=Astro.props;
+---
+<div class="app-layout flex items-center justify-start"><a id="back-button" href={href} class="focus-outline hover:text-foreground/75 -ms-2 mt-8 mb-2 inline-flex items-center gap-1"><IconChevronLeft class="inline-block size-6"/><span>{label}</span></a></div>
+<script>function updateBack(){const el=document.querySelector<HTMLAnchorElement>('#back-button');const backUrl=sessionStorage.getItem('backUrl');if(el&&backUrl)el.href=backUrl;}updateBack();document.addEventListener('astro:page-load',updateBack);</script>

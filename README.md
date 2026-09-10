@@ -47,7 +47,7 @@ Worker Durable Object 保存每篇文章最后一次请求的版本及全量请�
 
 当前只保留 `AstroPaper` 主题，Notion「站点设置」的「主题」字段也只提供这一项。`src/theme.ts` 保留统一主题入口，方便以后新增主题；Notion 同步、内容 URL 与主题目录彼此独立。
 
-AstroPaper 适配器位于 `src/themes/astropaper/`，参考 [AstroPaper](https://github.com/satnaing/astro-paper) 的窄栏排版、等宽字体、文章列表、明暗配色和无障碍交互，并继续使用本站的 Notion 内容模型。
+AstroPaper 主题层位于 `src/themes/astropaper/`，直接使用 [AstroPaper](https://github.com/satnaing/astro-paper) 上游的 Tailwind 样式系统、SVG 图标、页面过渡、列表、包屑和无障碍交互。本站代码只在组件属性处连接 Notion 内容模型；`项目`和`想法`是在原版主题规则内增加的内容类型。
 
 Pages 生产环境加密密钥：NOTION_TOKEN（博客后台只读）、SYNC_KEY（与 Worker PUBLISH_KEY 一致）。
 Worker 位于 workers/notion-webhook，密钥为 SETUP_KEY、PUBLISH_KEY、DEPLOY_HOOK_URL。

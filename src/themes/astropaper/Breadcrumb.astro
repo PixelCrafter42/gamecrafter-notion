@@ -1,0 +1,11 @@
+---
+import { site } from '../../site.config';
+const { section, pageNumber, currentLabel }=Astro.props;
+const label=currentLabel??(pageNumber?`${section.navLabel}（第 ${pageNumber} 页）`:section.navLabel);
+---
+<nav class="app-layout mt-8 mb-1" aria-label="面包屑导航">
+  <ul class="flex flex-wrap items-center gap-x-1 font-light [&>li:not(:last-child)>a]:hover:opacity-100">
+    <li class="flex items-center gap-x-1"><a href="/" class="opacity-80">{site.navigation.home||'首页'}</a><span aria-hidden="true" class="opacity-80">&raquo;</span></li>
+    <li><span class="opacity-75" aria-current="page">{label}</span></li>
+  </ul>
+</nav>

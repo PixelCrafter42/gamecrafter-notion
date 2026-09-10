@@ -1,5 +1,12 @@
 ---
-import{site}from'../../site.config';import BaseLayout from'./BaseLayout.astro';const{eyebrow,heading,intro,title=`${heading} · ${site.name}`,description=intro}=Astro.props;
+import{site}from'../../site.config';import BaseLayout from'./BaseLayout.astro';import Breadcrumb from'./Breadcrumb.astro';const{eyebrow,heading,intro,title=`${heading} · ${site.name}`,description=intro}=Astro.props;const section=site.sections.find(item=>`${item.path}/`===Astro.url.pathname)||{navLabel:heading};
 ---
-<BaseLayout {title} {description}><article class="page ap-shell ap-page"><header><p class="ap-kicker">{eyebrow}</p><h1>{heading}</h1>{intro&&<p>{intro}</p>}</header><div class="ap-prose"><slot/></div></article></BaseLayout>
-<style>.page{padding-top:3rem}header{margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid var(--ap-border)}h1{margin:.45rem 0 .7rem;font-size:2.4rem;line-height:1.2}header>p:last-child{margin:0;color:var(--ap-muted)}@media(max-width:640px){.page{padding-top:2rem}h1{font-size:2rem}}</style>
+<BaseLayout {title} {description}>
+  <Breadcrumb {section}/>
+  <main id="main-content" class="app-layout app-prose pb-4">
+    {eyebrow&&<p class="text-muted-foreground mb-1 text-sm">{eyebrow}</p>}
+    <h1 class="text-2xl font-semibold sm:text-3xl">{heading}</h1>
+    {intro&&<p class="mt-2 mb-6 italic">{intro}</p>}
+    <slot/>
+  </main>
+</BaseLayout>
