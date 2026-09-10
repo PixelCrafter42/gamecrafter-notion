@@ -1,4 +1,5 @@
 ---
+import { ClientRouter } from 'astro:transitions';
 import SEO from './SEO.astro';
 import Header from './Header.astro';
 import Footer from './Footer.astro';
@@ -6,14 +7,57 @@ import './styles/global.css';
 const {title,description,canonical,type,structuredData}=Astro.props;
 ---
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="overflow-y-scroll scroll-smooth">
   <head>
     <SEO {title} {description} {canonical} {type} {structuredData}/>
-    <script is:inline>try{document.documentElement.dataset.theme=localStorage.getItem('gamecrafter-color-theme')||'system'}catch{document.documentElement.dataset.theme='system'}</script>
+    <meta name="theme-color" content="" />
+    <script is:inline>
+      (()=>{
+        try {
+          const saved=localStorage.getItem('theme')||localStorage.getItem('gamecrafter-color-theme');
+          const theme=saved||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+          document.documentElement.dataset.theme=theme;
+          document.documentElement.classList.toggle('dark',theme==='dark');
+          window.__theme={value:theme};
+        } catch {}
+      })();
+    </script>
+    <ClientRouter />
   </head>
-  <body>
+  <body class="bg-background font-app text-foreground flex min-h-svh flex-col selection:bg-accent/75 selection:text-accent-foreground">
     <Header/>
-    <main id="main-content"><slot/></main>
+    <slot/>
     <Footer/>
+    <script>
+      let themeValue=(window as Window & {__theme?:{value:string}}).__theme?.value
+        ??(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+      const reflectTheme=()=>{
+        const root=document.documentElement;
+        root.dataset.theme=themeValue;
+        root.classList.toggle('dark',themeValue==='dark');
+        document.querySelector('[data-theme-toggle]')?.setAttribute('aria-label',themeValue);
+        const background=getComputedStyle(document.body).backgroundColor;
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content',background);
+      };
+      const setupTheme=()=>{
+        reflectTheme();
+        const button=document.querySelector<HTMLElement>('[data-theme-toggle]');
+        if(button&&!button.dataset.themeReady){
+          button.dataset.themeReady='true';
+          button.addEventListener('click',()=>{
+            themeValue=themeValue==='light'?'dark':'light';
+            localStorage.setItem('theme',themeValue);
+            localStorage.removeItem('gamecrafter-color-theme');
+            reflectTheme();
+          });
+        }
+      };
+      setupTheme();
+      document.addEventListener('astro:after-swap',setupTheme);
+      document.addEventListener('astro:before-swap',(event)=>{
+        const color=document.querySelector('meta[name="theme-color"]')?.getAttribute('content');
+        if(color)(event as CustomEvent & {newDocument:Document}).newDocument?.querySelector('meta[name="theme-color"]')?.setAttribute('content',color);
+      });
+    </script>
   </body>
 </html>
