@@ -1,13 +1,16 @@
+import managedSite from './data/site-config.json';
+
+type ManagedSite = {
+  name: string;
+  title: string;
+  description: string;
+  avatar: null | { src: string; alt: string };
+  author: { name: string; bio: string; email: string };
+  social: Array<{ label: string; href: string }>;
+  features: { theme: boolean; rss: boolean };
+};
+
 export const site = {
-  name: 'Craft4Fun',
-  title: 'Craft4Fun',
-  description: '想法、尝试与记录。',
+  ...(managedSite as ManagedSite),
   url: 'https://gamecrafter.fun',
-  author: {
-    name: 'Craft4Fun',
-    bio: '把值得留下的事情，慢慢写下来。',
-    email: '',
-  },
-  social: [] as Array<{ label: string; href: string }>,
-  features: { theme: true, rss: true },
 } as const;

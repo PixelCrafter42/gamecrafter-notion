@@ -1,6 +1,22 @@
 {
   "dataSourceId": "8b715c54-f0d4-4139-bfdb-0da86a27c44d",
   "databaseUrl": "https://www.notion.so/cb97c82e4f104ec7b6129ca07429e03c",
+  "siteConfig": {
+    "databaseId": "3d77448d-2ab1-805c-af2c-d1459552ca89",
+    "databaseUrl": "https://www.notion.so/3d77448d2ab1805caf2cd1459552ca89",
+    "fields": {
+      "name": "站点名称",
+      "description": "简介",
+      "authorName": "作者名称",
+      "authorBio": "作者简介",
+      "avatar": "头像",
+      "email": "邮箱",
+      "github": "GitHub",
+      "x": "X",
+      "rss": "显示 RSS",
+      "theme": "显示明暗切换"
+    }
+  },
   "site": "https://gamecrafter.fun",
   "syncWorker": "https://gamecrafter-notion-sync.zzciweb.workers.dev",
   "fields": {

@@ -4,7 +4,10 @@ import Icon from './Icon.astro';
 const links = [{ href: '/', label: '首页' }, { href: '/blog/', label: '写作' }, { href: '/about/', label: '关于' }];
 ---
 <header class="site-header container">
-  <a class="brand" href="/" aria-label={`${site.name} 首页`}>{site.name}</a>
+  <a class="brand" href="/" aria-label={`${site.name} 首页`}>
+    {site.avatar && <img src={site.avatar.src} alt="" width="36" height="36" />}
+    <span>{site.name}</span>
+  </a>
   <nav aria-label="主导航">{links.map(item => <a href={item.href}>{item.label}</a>)}</nav>
   <div class="header-actions">
     {site.features.rss && <a class="icon-action rss" href="/rss.xml" aria-label="订阅 RSS">RSS</a>}
@@ -13,7 +16,8 @@ const links = [{ href: '/', label: '首页' }, { href: '/blog/', label: '写作'
 </header>
 <style>
   .site-header { display:flex; align-items:center; gap:2rem; min-height:5rem; border-bottom:1px solid var(--line); }
-  .brand { font-weight:800; text-decoration:none; letter-spacing:-.04em; font-size:1.2rem; }
+  .brand { display:inline-flex; align-items:center; gap:.65rem; font-weight:800; text-decoration:none; letter-spacing:-.04em; font-size:1.2rem; }
+  .brand img { width:2.25rem; height:2.25rem; border-radius:50%; object-fit:cover; border:1px solid var(--line); }
   nav { display:flex; flex-wrap:wrap; gap:1rem; flex:1; }
   nav a { color:var(--muted); text-decoration:none; font-size:.9rem; }
   nav a:hover { color:var(--ink); }

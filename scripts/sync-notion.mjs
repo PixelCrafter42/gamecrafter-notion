@@ -67,6 +67,43 @@ export async function collectSnapshot({ request, config, media, previous=[], tar
   return posts.sort((a,b)=>a.id.localeCompare(b.id));
 }
 
+export async function collectSiteConfig({request, config, media}) {
+  const settings=config.siteConfig;
+  if (!settings?.databaseId) return null;
+  const database=await request('databases/'+settings.databaseId);
+  const sources=database.data_sources;
+  if (!Array.isArray(sources) || sources.length!==1 || !sources[0]?.id) throw new Error('站点配置数据库来源无效');
+  const source=await request('data_sources/'+sources[0].id);
+  const expected={name:'title',description:'rich_text',authorName:'rich_text',authorBio:'rich_text',avatar:'files',email:'email',github:'url',x:'url',rss:'checkbox',theme:'checkbox'};
+  for (const [key,type] of Object.entries(expected)) if (source.properties?.[settings.fields[key]]?.type!==type) {
+    throw new Error('站点配置字段缺失或类型变化：'+settings.fields[key]);
+  }
+  const result=await request('data_sources/'+sources[0].id+'/query',{method:'POST',body:{page_size:2,sorts:[{timestamp:'last_edited_time',direction:'descending'}]}});
+  if (!Array.isArray(result.results) || result.results.length!==1) throw new Error('站点配置必须且只能保留一条记录');
+  const properties=result.results[0].properties;
+  const text=(key,type='rich_text')=>plainText(properties[settings.fields[key]]?.[type]).trim();
+  const name=text('name','title');
+  if (!name) throw new Error('站点名称不能为空');
+  const authorName=text('authorName') || name;
+  const email=String(properties[settings.fields.email]?.email || '').trim();
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('站点配置中的邮箱格式无效');
+  const social=[];
+  for (const [key,label] of [['github','GitHub'],['x','X']]) {
+    const value=properties[settings.fields[key]]?.url;
+    if (value) { const href=safeUrl(value); if (!href || !href.startsWith('https://')) throw new Error(label+' 链接必须使用 HTTPS'); social.push({label,href}); }
+  }
+  if (email) social.push({label:'邮箱',href:'mailto:'+email});
+  const avatarFile=properties[settings.fields.avatar]?.files?.[0];
+  const avatarIndex={};
+  const avatar=avatarFile ? {src:await media(avatarFile,avatarIndex),alt:authorName} : null;
+  return {
+    name,title:name,description:text('description') || name,avatar,
+    author:{name:authorName,bio:text('authorBio'),email},
+    social,
+    features:{rss:!!properties[settings.fields.rss]?.checkbox,theme:!!properties[settings.fields.theme]?.checkbox},
+  };
+}
+
 const sleep = ms => new Promise(resolve=>setTimeout(resolve,ms));
 export function createRequest({token,cliScript,fetchImpl=fetch}) {
   let last = 0;
@@ -133,6 +170,7 @@ export async function runSync() {
   };
   // Finish every API call before changing any generated file.
   const posts = await collectSnapshot({request,config,media,previous,targets});
+  const siteConfig = await collectSiteConfig({request,config,media});
   // Retain unchanged files from the published CDN instead of re-downloading them from Notion.
   const needed=[...new Set(posts.flatMap(post=>Object.values(post.mediaIndex || {})))];
   let nextAsset=0;
@@ -155,7 +193,8 @@ export async function runSync() {
   for (const [name,bytes] of assets) await writeFile(resolve(assetDir,name),bytes);
   const output=resolve(dataDir,'notion-posts.json');
   await writeFile(output+'.tmp',JSON.stringify(posts,null,2)+'\n'); await rename(output+'.tmp',output);
-  await writeFile(resolve(root,'public/_notion-content.json'),JSON.stringify({version:1,revision,posts})+'\n');
+  if (siteConfig) await writeFile(resolve(dataDir,'site-config.json'),JSON.stringify(siteConfig,null,2)+'\n');
+  await writeFile(resolve(root,'public/_notion-content.json'),JSON.stringify({version:1,revision,posts,siteConfig})+'\n');
   await writeFile(resolve(root,'public/_notion-sync.json'),JSON.stringify({syncedAt,revision,mode:targets===null?'full':'incremental',updated:targets===null?posts.length:targets.length})+'\n');
   // Delete only generated hash-named files inside this project's generated asset directory.
   for (const name of await readdir(assetDir)) if (/^[a-f0-9]{64}\.[a-z0-9]+$/.test(name) && !assets.has(name)) {
