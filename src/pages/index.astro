@@ -1,19 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
-import Page from '../layouts/Page.astro';
-import PostList from '../components/PostList.astro';
+import { Home } from '../theme';
 const posts = (await getCollection('blog', ({data}) => !data.draft)).sort((a,b)=>b.data.pubDate.valueOf()-a.data.pubDate.valueOf());
 ---
-<Page>
-  <section class="hero">
-    <div class="eyebrow">A personal notebook · 个人博客</div>
-    <h1>想法、尝试与记录。</h1>
-    <p class="intro">把值得留下的事情，慢慢写下来。</p>
-  </section>
-  <section aria-labelledby="recent-posts">
-    <div class="section-heading"><h2 id="recent-posts">最近文章</h2><a class="small-link" href="/blog/">全部文章 <span aria-hidden="true">↗</span></a></div>
-    <PostList posts={posts.slice(0,6)} />
-    {posts.length===0 && <p class="empty-state">第一篇文章正在酝酿中。</p>}
-  </section>
-  <aside class="subscribe"><p>偶尔更新，慢慢积累。</p><a href="/rss.xml">通过 RSS 订阅 <span aria-hidden="true">↗</span></a></aside>
-</Page>
+<Home posts={posts} />

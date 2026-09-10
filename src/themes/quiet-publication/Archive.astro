@@ -1,0 +1,24 @@
+---
+import { site } from '../../site.config';
+import BaseLayout from './BaseLayout.astro';
+import PostCard from './PostCard.astro';
+const { posts } = Astro.props;
+const years = [...new Set(posts.map(post => post.data.pubDate.getUTCFullYear()))];
+---
+<BaseLayout title={`写作 · ${site.name}`} description={`${site.name} 的全部文章与记录。`}>
+  <header class="page-head container">
+    <p class="eyebrow">Writing</p>
+    <h1>把值得留下的事情写下来。</h1>
+    <p>共 {posts.length} 篇，按发布时间排序。</p>
+  </header>
+  {posts.length > 0 ? years.map(year => <section class="container year" aria-label={`${year} 年文章`}>
+    <div class="section-heading"><h2>{year}</h2></div>
+    <div class="list">{posts.filter(post => post.data.pubDate.getUTCFullYear() === year).map(post => <PostCard post={post} />)}</div>
+  </section>) : <p class="container empty">还没有公开文章。</p>}
+</BaseLayout>
+<style>
+  .page-head { padding:5rem 0 2rem; }
+  .page-head h1 { font-size:clamp(2.8rem,7vw,5.5rem); line-height:1.02; letter-spacing:-.06em; max-width:55rem; margin:.5rem 0; }
+  .page-head p, .empty { color:var(--muted); }
+  .year h2 { color:var(--accent); font:.8rem ui-monospace, monospace; }
+</style>
