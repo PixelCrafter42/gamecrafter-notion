@@ -6,11 +6,11 @@ import {richText,renderBlocks} from './notion-render.mjs';
 const rt=text=>[{type:'text',plain_text:text,text:{content:text}}];
 const block=text=>({id:'block',type:'paragraph',paragraph:{rich_text:rt(text)}});
 const common={title:'标题',description:'摘要',status:'发布状态',published:'已发布',date:'发布日期',tags:'标签',slug:'路径',featured:'精选',cover:'封面'};
-const settingsFields={name:'站点名称',description:'简介',authorName:'作者名称',authorBio:'作者简介',avatar:'头像',email:'邮箱',github:'GitHub',x:'X',rss:'显示 RSS',theme:'显示明暗切换'};
+const settingsFields={name:'站点名称',description:'简介',authorName:'作者名称',authorBio:'作者简介',avatar:'头像',email:'邮箱',github:'GitHub',x:'X',rss:'显示 RSS',theme:'显示明暗切换',activeTheme:'主题'};
 const sectionFields={name:'栏目',key:'标识',path:'路径',layout:'布局',enabled:'启用',navLabel:'导航名称',showInNav:'显示在导航',navOrder:'导航排序',eyebrow:'页眉',heading:'页面标题',description:'页面简介',showOnHome:'首页展示',homeTitle:'首页标题',homeDescription:'首页简介',homeLimit:'首页数量',contentSource:'内容数据源'};
 const projectFields={projectStatus:'项目状态',projectType:'项目类型',projectUrl:'项目主页',repository:'代码仓库'};
 const config={
-  databaseId:'cms',site:'https://gamecrafter.fun',
+  databaseId:'cms',site:'https://gamecrafter.fun',themes:{Navfolio:'navfolio','Quiet Publication':'quiet-publication'},
   sources:{
     settings:{name:'站点设置',fields:settingsFields},sections:{name:'栏目管理',fields:sectionFields},
     content:{commonFields:common,layouts:{'文章列表':{kind:'article'},'项目网格':{kind:'project',fields:projectFields}}},
@@ -105,13 +105,16 @@ test('sections drive navigation and ordinary page bodies',async()=>{
 });
 
 test('site settings combine with section rows into public configuration',async()=>{
-  const properties={站点名称:{title:rt('Craft4Fun')},简介:{rich_text:rt('记录。')},作者名称:{rich_text:rt('Crafter')},作者简介:{rich_text:rt('慢慢写。')},头像:{files:[{type:'file',file:{url:'https://example.com/avatar.png'}}]},邮箱:{email:'hello@example.com'},GitHub:{url:'https://github.com/example'},X:{url:null},'显示 RSS':{checkbox:true},显示明暗切换:{checkbox:false}};
-  const schema={properties:Object.fromEntries(Object.entries({name:'title',description:'rich_text',authorName:'rich_text',authorBio:'rich_text',avatar:'files',email:'email',github:'url',x:'url',rss:'checkbox',theme:'checkbox'}).map(([key,type])=>[settingsFields[key],{type}]))};
+  const properties={站点名称:{title:rt('Craft4Fun')},简介:{rich_text:rt('记录。')},作者名称:{rich_text:rt('Crafter')},作者简介:{rich_text:rt('慢慢写。')},头像:{files:[{type:'file',file:{url:'https://example.com/avatar.png'}}]},邮箱:{email:'hello@example.com'},GitHub:{url:'https://github.com/example'},X:{url:null},'显示 RSS':{checkbox:true},显示明暗切换:{checkbox:false},主题:{select:{name:'Navfolio'}}};
+  const schema={properties:Object.fromEntries(Object.entries({name:'title',description:'rich_text',authorName:'rich_text',authorBio:'rich_text',avatar:'files',email:'email',github:'url',x:'url',rss:'checkbox',theme:'checkbox',activeTheme:'select'}).map(([key,type])=>[settingsFields[key],{type}]))};
   const sections=[section('home',{path:'/',contentSource:'',sourceId:'',navLabel:'首页'}),section(),section('projects'),section('about',{path:'/about',layout:'普通页面',contentSource:'',sourceId:'',navLabel:'关于',heading:'关于我',html:'<p>关于正文</p>'})];
   const request=async path=>path==='data_sources/settings'?schema:{results:[{id:'settings-page',properties}],has_more:false};
   const value=await collectSiteConfig({config,request,media:async()=>'/notion-media/avatar.png',sources,sections});
-  assert.equal(value.name,'Craft4Fun');assert.equal(value.avatar.src,'/notion-media/avatar.png');assert.equal(value.pages.about.html,'<p>关于正文</p>');
+  assert.equal(value.name,'Craft4Fun');assert.equal(value.themeId,'navfolio');assert.equal(value.avatar.src,'/notion-media/avatar.png');assert.equal(value.pages.about.html,'<p>关于正文</p>');
   assert.deepEqual(value.social,[{label:'GitHub',href:'https://github.com/example'},{label:'邮箱',href:'mailto:hello@example.com'}]);
+  properties.主题.select.name='Unknown';
+  await assert.rejects(()=>collectSiteConfig({config,request,media:async()=>'',sources,sections}),/主题无效/);
+  properties.主题.select.name='Navfolio';
   properties.GitHub.url='javascript:alert(1)';
   await assert.rejects(()=>collectSiteConfig({config,request,media:async()=>'',sources,sections}),/HTTPS/);
 });

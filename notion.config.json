@@ -14,7 +14,8 @@
         "github": "GitHub",
         "x": "X",
         "rss": "显示 RSS",
-        "theme": "显示明暗切换"
+        "theme": "显示明暗切换",
+        "activeTheme": "主题"
       }
     },
     "sections": {
@@ -68,6 +69,10 @@
         }
       }
     }
+  },
+  "themes": {
+    "Navfolio": "navfolio",
+    "Quiet Publication": "quiet-publication"
   },
   "site": "https://gamecrafter.fun",
   "syncWorker": "https://gamecrafter-notion-sync.zzciweb.workers.dev"

@@ -1,0 +1,29 @@
+---
+import Icon from './Icon.astro';
+const { post, index }=Astro.props;
+const data=post.data;
+const base=data.modulePath==='/'?'':data.modulePath;
+---
+<article class="post-card">
+  {index !== undefined && <span class="index" aria-hidden="true">{String(index+1).padStart(2,'0')}</span>}
+  <div class="copy">
+    <h2><a href={`${base}/${post.id}/`}>{data.title}</a></h2>
+    {data.description && <p>{data.description}</p>}
+    <div class="meta"><time datetime={data.pubDate.toISOString()}>{data.pubDate.toLocaleDateString('zh-CN')}</time>{data.tags.map((tag:string)=><span>#{tag}</span>)}</div>
+  </div>
+  <a class="arrow" href={`${base}/${post.id}/`} aria-label={`阅读：${data.title}`}><Icon name="arrowRight" /></a>
+</article>
+<style>
+  .post-card { display:grid; grid-template-columns:2.2rem minmax(0,1fr) auto; gap:.85rem; align-items:start; padding:1.2rem 0; border-bottom:1px solid var(--nf-line); }
+  .post-card:first-child { padding-top:.25rem; }
+  .post-card:last-child { border-bottom:0; }
+  .index { padding-top:.25rem; color:var(--nf-accent); font:700 .68rem ui-monospace,monospace; }
+  h2 { margin:0; font-size:1.06rem; line-height:1.45; letter-spacing:-.015em; }
+  h2 a { text-decoration:none; }
+  h2 a:hover { color:var(--nf-accent); }
+  p { margin:.35rem 0 0; color:var(--nf-muted); font-size:.88rem; line-height:1.65; }
+  .meta { display:flex; flex-wrap:wrap; gap:.35rem .75rem; margin-top:.6rem; color:var(--nf-muted); font-size:.72rem; }
+  .arrow { display:grid; place-items:center; width:2rem; height:2rem; border-radius:50%; color:var(--nf-muted); text-decoration:none; }
+  .arrow:hover { background:var(--nf-accent-soft); color:var(--nf-accent); }
+  @media(max-width:34rem) { .post-card { grid-template-columns:1.6rem minmax(0,1fr); } .arrow { display:none; } }
+</style>
