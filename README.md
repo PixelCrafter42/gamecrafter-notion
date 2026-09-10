@@ -37,7 +37,7 @@ Worker Durable Object 保存每篇文章最后一次请求的版本及全量请�
 
 ## 配置
 
-站点名称、简介、作者和社交链接统一放在 `src/site.config.ts`。
+站点名称、简介、作者资料、头像、邮箱、社交链接、RSS 和明暗模式开关统一放在 Notion 的“站点配置 · gamecrafter.fun”数据库。修改唯一一条配置记录后，点击博客管理页的“全量更新”发布；头像会下载到站点资源中，不依赖会过期的 Notion 文件地址。`src/site.config.ts` 只负责读取同步生成的配置并固定正式域名。
 
 当前主题是 [A Quiet Publication](https://github.com/Liyuk/astro-fourfold)，主题组件位于 `src/themes/quiet-publication/`，`src/theme.ts` 是页面使用的主题入口。Notion 同步与主题目录彼此独立；以后接入其他主题时实现相同的页面组件，再在 `src/theme.ts` 切换导出即可，不需要修改同步 Worker。
 

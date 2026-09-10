@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {metadata,collectSnapshot} from './sync-notion.mjs';
+import {metadata,collectSnapshot,collectSiteConfig} from './sync-notion.mjs';
 import {richText,renderBlocks} from './notion-render.mjs';
 
 const fields={title:'标题',description:'摘要',status:'发布状态',published:'已发布',date:'发布日期',tags:'标签',slug:'文章链接'};
@@ -83,4 +83,22 @@ test('duplicate slugs, schema changes, API failure and concurrent unpublishing f
   await assert.rejects(()=>collectSnapshot({config,request:async path=>path==='data_sources/db'?schema:{results:[page(),page()],has_more:false}}),/重复/);
   await assert.rejects(()=>collectSnapshot({config,request:async()=>{throw new Error('offline');}}),/offline/);
   await assert.rejects(()=>collectSnapshot({config,media:async()=>'',request:async path=>path==='data_sources/db'?schema:path.endsWith('/query')?{results:[page()],has_more:false}:path.startsWith('blocks/')?{results:[],has_more:false}:page('one','草稿')}),/正在编辑或下线/);
+});
+
+test('site settings map one Notion row to safe public configuration',async()=>{
+  const siteFields={name:'站点名称',description:'简介',authorName:'作者名称',authorBio:'作者简介',avatar:'头像',email:'邮箱',github:'GitHub',x:'X',rss:'显示 RSS',theme:'显示明暗切换'};
+  const siteConfig={databaseId:'settings',fields:siteFields};
+  const properties={
+    站点名称:{title:rt('Craft4Fun')},简介:{rich_text:rt('记录。')},作者名称:{rich_text:rt('Crafter')},作者简介:{rich_text:rt('慢慢写。')},
+    头像:{files:[{type:'file',file:{url:'https://example.com/avatar.png'}}]},邮箱:{email:'hello@example.com'},GitHub:{url:'https://github.com/example'},X:{url:null},
+    '显示 RSS':{checkbox:true},显示明暗切换:{checkbox:false},
+  };
+  const settingsSchema={properties:Object.fromEntries(Object.entries({name:'title',description:'rich_text',authorName:'rich_text',authorBio:'rich_text',avatar:'files',email:'email',github:'url',x:'url',rss:'checkbox',theme:'checkbox'}).map(([key,type])=>[siteFields[key],{type}]))};
+  const request=async path=>path==='databases/settings'?{data_sources:[{id:'source'}]}:path==='data_sources/source'?settingsSchema:{results:[{properties}]};
+  const value=await collectSiteConfig({config:{siteConfig},request,media:async()=>'/notion-media/avatar.png'});
+  assert.equal(value.name,'Craft4Fun');assert.equal(value.avatar.src,'/notion-media/avatar.png');assert.equal(value.author.email,'hello@example.com');
+  assert.deepEqual(value.social,[{label:'GitHub',href:'https://github.com/example'},{label:'邮箱',href:'mailto:hello@example.com'}]);
+  assert.deepEqual(value.features,{rss:true,theme:false});
+  properties.GitHub.url='javascript:alert(1)';
+  await assert.rejects(()=>collectSiteConfig({config:{siteConfig},request,media:async()=>''}),/HTTPS/);
 });
