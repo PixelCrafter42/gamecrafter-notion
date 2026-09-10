@@ -50,5 +50,6 @@ const date=data.pubDate.toLocaleString('zh-CN',data.publishedHasTime
   .feed-body :global(figure img){display:block;width:100%;max-height:36rem;object-fit:cover}
   .feed-body :global(figcaption){padding:.45rem .7rem;color:var(--muted-foreground);font-size:.78rem}
   footer{margin-top:.75rem}footer a{display:inline-flex;align-items:center;gap:.3rem;color:var(--muted-foreground);font-size:.8rem;text-decoration:none}footer a:hover{color:var(--accent)}
+  @media(min-width:641px){.feed-body :global(figure){max-width:32rem}.feed-body :global(figure img){width:auto;max-width:100%;height:auto;max-height:20rem;margin-inline:auto;object-fit:contain}}
   @media(max-width:480px){.thought{grid-template-columns:2.65rem minmax(0,1fr);gap:.65rem;padding-block:1rem}.avatar{width:2.65rem;height:2.65rem}.handle{display:none}.dot{display:none}.date{margin-left:auto;font-size:.78rem}}
 </style>
