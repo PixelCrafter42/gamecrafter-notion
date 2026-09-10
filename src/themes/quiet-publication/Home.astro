@@ -6,18 +6,14 @@ import PostCard from './PostCard.astro';
 import { quietPublicationTheme } from './theme.config';
 const { posts } = Astro.props;
 const heroStyle = [
-  `--hero-spacing:${quietPublicationTheme.hero.spacing}`,
-  `--hero-title-size:${quietPublicationTheme.hero.titleSize}`,
-  `--hero-title-line-height:${quietPublicationTheme.hero.titleLineHeight}`,
-  `--hero-lede-size:${quietPublicationTheme.hero.ledeSize}`,
+  `--hero-spacing:${quietPublicationTheme.homeIntro.spacing}`,
+  `--hero-lede-size:${quietPublicationTheme.homeIntro.ledeSize}`,
 ].join(';');
 ---
 <BaseLayout>
   <section class="hero container" style={heroStyle}>
-    <p class="eyebrow">Personal publication</p>
-    <h1>{site.name}</h1>
     <p class="lede">{site.description}</p>
-    <p class="author">{site.author.name} · {site.author.bio}</p>
+    <p class="author">{site.author.bio}</p>
   </section>
   <section class="container">
     <div class="section-heading"><h2><span>01 /</span> 写作</h2><a href="/blog/">全部 {posts.length} 篇 <Icon name="arrowRight" size="sm" /></a></div>
@@ -33,10 +29,10 @@ const heroStyle = [
 </BaseLayout>
 <style>
   .hero { padding:var(--hero-spacing); }
-  .hero h1 { font-size:var(--hero-title-size); line-height:var(--hero-title-line-height); margin:.5rem 0 1rem; letter-spacing:-.06em; }
-  .lede { font-size:var(--hero-lede-size); max-width:45rem; line-height:1.35; margin:.5rem 0; }
-  .author { margin-top:1rem; }
+  .lede { font-size:var(--hero-lede-size); max-width:45rem; line-height:1.35; margin:0; }
+  .author { margin:.4rem 0 0; }
   .author, .empty { color:var(--muted); max-width:40rem; }
+  .hero + section :global(.section-heading) { margin-top:3rem; }
   .section-heading span { color:var(--accent); font-size:.8rem; font-family:ui-monospace,monospace; }
   .sub { margin-top:2rem; }
   .start { margin-top:5rem; padding:3rem 0; border-block:1px solid var(--line); }
