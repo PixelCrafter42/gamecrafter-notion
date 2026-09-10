@@ -1,0 +1,17 @@
+---
+import { site } from '../../site.config';
+import BaseLayout from './BaseLayout.astro';
+import PostCard from './PostCard.astro';
+const { posts, section }=Astro.props;
+---
+<BaseLayout title={`${section.navLabel} · ${site.name}`} description={section.description||`${site.name} 的${section.navLabel}内容。`}>
+  <div class="archive nf-shell">
+    <header class="nf-page-head nf-card"><p class="nf-kicker">{section.eyebrow}</p><h1>{section.heading}</h1><p>共 {posts.length} 篇，按发布时间排序。</p></header>
+    <section class="list nf-card" aria-label={section.navLabel}>{posts.length?posts.map((post,index)=><PostCard post={post} index={index} />):<p class="nf-empty">还没有公开内容。</p>}</section>
+  </div>
+</BaseLayout>
+<style>
+  .archive { display:grid; gap:1rem; padding-top:2rem; }
+  .list { padding:1.25rem 1.8rem; }
+  @media(max-width:42rem){.archive{padding-top:1rem}.list{padding:1rem 1.3rem}}
+</style>

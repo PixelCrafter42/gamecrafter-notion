@@ -176,7 +176,7 @@ export async function collectSiteConfig({request,config,media,sources,sections})
   const settings=config.sources.settings;
   const sourceId=sources.byName.get(settings.name);
   const source=await request('data_sources/'+sourceId);
-  requireSchema(source,settings.fields,{name:'title',description:'rich_text',authorName:'rich_text',authorBio:'rich_text',avatar:'files',email:'email',github:'url',x:'url',rss:'checkbox',theme:'checkbox'},'站点设置');
+  requireSchema(source,settings.fields,{name:'title',description:'rich_text',authorName:'rich_text',authorBio:'rich_text',avatar:'files',email:'email',github:'url',x:'url',rss:'checkbox',theme:'checkbox',activeTheme:'select'},'站点设置');
   const rows=await queryAll(request,sourceId,{sorts:[{timestamp:'last_edited_time',direction:'descending'}]});
   if (rows.length!==1) throw new Error('站点设置必须且只能保留一条记录');
   const page=rows[0],properties=page.properties;
@@ -184,6 +184,9 @@ export async function collectSiteConfig({request,config,media,sources,sections})
   const name=text('name','title');
   if (!name) throw new Error('站点名称不能为空');
   const authorName=text('authorName') || name;
+  const selectedTheme=properties[settings.fields.activeTheme]?.select?.name || '';
+  const themeId=config.themes?.[selectedTheme];
+  if (!themeId) throw new Error('站点设置中的主题无效，请选择已支持的主题');
   const email=String(properties[settings.fields.email]?.email || '').trim();
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('站点设置中的邮箱格式无效');
   const social=[];
@@ -199,7 +202,7 @@ export async function collectSiteConfig({request,config,media,sources,sections})
   const byKey=Object.fromEntries(active.map(section=>[section.key,section]));
   const writing=byKey.writing || {},projects=byKey.projects || {},about=byKey.about || {};
   return {
-    name,title:name,description:text('description') || name,avatar,author:{name:authorName,bio:text('authorBio'),email},social,
+    name,title:name,description:text('description') || name,themeId,avatar,author:{name:authorName,bio:text('authorBio'),email},social,
     sections:active.map(({mediaIndex,sourceId,...section})=>section),
     navigation:{home:byKey.home?.navLabel || '首页',writing:writing.navLabel || '写作',projects:projects.navLabel || '项目',about:about.navLabel || '关于'},
     pages:{

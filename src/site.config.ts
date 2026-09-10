@@ -4,6 +4,7 @@ type ManagedSite = {
   name: string;
   title: string;
   description: string;
+  themeId: 'navfolio' | 'quiet-publication';
   avatar: null | { src: string; alt: string };
   author: { name: string; bio: string; email: string };
   social: Array<{ label: string; href: string }>;

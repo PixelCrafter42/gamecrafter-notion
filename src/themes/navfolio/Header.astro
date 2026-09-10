@@ -1,0 +1,42 @@
+---
+import { site } from '../../site.config';
+import Icon from './Icon.astro';
+const links=site.sections.filter(section=>section.showInNav).sort((a,b)=>a.navOrder-b.navOrder).map(section=>({href:section.path==='/'?'/':`${section.path}/`,label:section.navLabel}));
+---
+<header class="nf-header">
+  <div class="nf-shell bar">
+    <a class="brand" href="/" aria-label={`${site.name} 首页`}>
+      {site.avatar && <img src={site.avatar.src} alt="" width="34" height="34" />}
+      <span>{site.name}</span>
+    </a>
+    <nav aria-label="主导航">{links.map(link=><a class:list={{active:Astro.url.pathname===link.href || (link.href!=='/' && Astro.url.pathname.startsWith(link.href))}} href={link.href}>{link.label}</a>)}</nav>
+    <div class="actions">
+      {site.features.rss && <a href="/rss.xml" aria-label="订阅 RSS">RSS</a>}
+      {site.features.theme && <button type="button" data-theme-toggle aria-label="切换明暗主题"><Icon name="theme" /></button>}
+    </div>
+  </div>
+</header>
+<style>
+  .nf-header { position:sticky; top:0; z-index:20; padding:.75rem 0; background:color-mix(in srgb, var(--nf-bg) 82%, transparent); backdrop-filter:blur(18px); }
+  .bar { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:1.4rem; min-height:3.25rem; padding:.4rem .55rem .4rem .7rem; border:1px solid var(--nf-line); border-radius:1.2rem; background:var(--nf-surface); box-shadow:0 8px 30px rgba(52,72,59,.05); }
+  .brand { display:inline-flex; align-items:center; gap:.6rem; min-width:0; font-weight:760; text-decoration:none; letter-spacing:-.02em; }
+  .brand img { width:2.1rem; height:2.1rem; border-radius:50%; object-fit:cover; }
+  nav { display:flex; justify-content:center; gap:.2rem; }
+  nav a, .actions a, .actions button { border:0; border-radius:.75rem; background:transparent; color:var(--nf-muted); font-size:.84rem; text-decoration:none; }
+  nav a { padding:.45rem .65rem; }
+  nav a:hover, nav a.active { background:var(--nf-accent-soft); color:var(--nf-ink); }
+  .actions { display:flex; align-items:center; gap:.2rem; }
+  .actions a, .actions button { display:grid; place-items:center; min-width:2.2rem; height:2.2rem; padding:.2rem; cursor:pointer; }
+  .actions a { font-size:.68rem; font-weight:750; }
+  .actions a:hover, .actions button:hover { background:var(--nf-accent-soft); color:var(--nf-ink); }
+  @media(max-width:46rem) { .nf-header { padding:.45rem 0; } .bar { grid-template-columns:1fr auto; } .actions { grid-column:2; grid-row:1; } nav { grid-column:1/-1; grid-row:2; justify-content:flex-start; overflow:auto; padding-top:.15rem; } nav a { white-space:nowrap; } }
+</style>
+<script>
+  document.querySelector('[data-theme-toggle]')?.addEventListener('click',()=>{
+    const current=document.documentElement.dataset.theme;
+    const dark=current==='dark' || (current==='system' && matchMedia('(prefers-color-scheme: dark)').matches);
+    const next=dark?'light':'dark';
+    document.documentElement.dataset.theme=next;
+    try { localStorage.setItem('gamecrafter-color-theme',next); } catch {}
+  });
+</script>

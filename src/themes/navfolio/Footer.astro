@@ -1,0 +1,16 @@
+---
+import { site } from '../../site.config';
+---
+<footer class="nf-footer nf-shell">
+  <div><strong>{site.name}</strong><p>{site.author.bio}</p></div>
+  <div class="links">{site.social.map(item=><a href={item.href} rel="me">{item.label}</a>)}{site.features.rss && <a href="/rss.xml">RSS</a>}</div>
+  <small>© {new Date().getFullYear()} {site.author.name}</small>
+</footer>
+<style>
+  .nf-footer { display:grid; grid-template-columns:1fr auto auto; align-items:start; gap:2rem; margin-top:5rem; padding:2rem .25rem 3rem; border-top:1px solid var(--nf-line); color:var(--nf-muted); font-size:.82rem; }
+  strong { color:var(--nf-ink); }
+  p { margin:.25rem 0 0; }
+  .links { display:flex; flex-wrap:wrap; gap:.8rem; }
+  a { color:inherit; }
+  @media(max-width:42rem) { .nf-footer { grid-template-columns:1fr; gap:1rem; margin-top:3rem; } }
+</style>

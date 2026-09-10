@@ -1,0 +1,14 @@
+---
+import { site } from '../../site.config';
+import BaseLayout from './BaseLayout.astro';
+const { eyebrow,heading,intro,title=`${heading} · ${site.name}`,description=intro }=Astro.props;
+---
+<BaseLayout title={title} description={description}>
+  <article class="page nf-reading nf-card"><header><p class="nf-kicker">{eyebrow}</p><h1>{heading}</h1>{intro&&<p>{intro}</p>}</header><div class="nf-prose"><slot /></div></article>
+</BaseLayout>
+<style>
+  .page { margin-top:2rem; padding:clamp(1.5rem,4vw,3.2rem); }
+  header { margin-bottom:2rem; padding-bottom:1.8rem; border-bottom:1px solid var(--nf-line); }
+  h1 { margin:.5rem 0 .7rem; font-size:clamp(2rem,4vw,3.2rem); line-height:1.12; letter-spacing:-.045em; }
+  header>p:last-child { margin:0; color:var(--nf-muted); }
+</style>
