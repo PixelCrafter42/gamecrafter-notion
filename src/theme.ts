@@ -7,3 +7,5 @@ export { default as ContentPage } from './themes/quiet-publication/ContentPage.a
 export { default as NotFound } from './themes/quiet-publication/NotFound.astro';
 export { default as Projects } from './themes/quiet-publication/Projects.astro';
 export { default as Project } from './themes/quiet-publication/Project.astro';
+export { default as ThoughtStream } from './themes/quiet-publication/ThoughtStream.astro';
+export { default as Thought } from './themes/quiet-publication/Thought.astro';

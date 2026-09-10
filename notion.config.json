@@ -54,6 +54,9 @@
         "文章列表": {
           "kind": "article"
         },
+        "动态流": {
+          "kind": "article"
+        },
         "项目网格": {
           "kind": "project",
           "fields": {

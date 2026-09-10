@@ -8,8 +8,9 @@ export function buildSectionPaths({sections,posts,projects}) {
     }
     const collection=section.layout === '项目网格'?projects:posts;
     const items=collection.filter(item=>item.data.moduleKey === section.key);
-    paths.push({params:{path},props:{view:section.layout === '项目网格'?'projects':'archive',section,items}});
-    for (const item of items) paths.push({params:{path:`${path}/${item.id}`},props:{view:section.layout === '项目网格'?'project':'article',section,item,items}});
+    const stream=section.layout === '动态流';
+    paths.push({params:{path},props:{view:section.layout === '项目网格'?'projects':stream?'thoughts':'archive',section,items}});
+    for (const item of items) paths.push({params:{path:`${path}/${item.id}`},props:{view:section.layout === '项目网格'?'project':stream?'thought':'article',section,item,items}});
   }
   return paths;
 }

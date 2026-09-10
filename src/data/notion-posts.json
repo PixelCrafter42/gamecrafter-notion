@@ -7,6 +7,7 @@
     "title": "你好",
     "description": "先搭起一个小小的空间，让记录有个落脚点。现在可以在 Notion 中更新。",
     "pubDate": "2026-09-09T00:00:00.000Z",
+    "publishedHasTime": false,
     "tags": [
       "站点日志"
     ],

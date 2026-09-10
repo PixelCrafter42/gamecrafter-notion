@@ -1,6 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
-import { Archive, Article, ContentPage, Project, Projects } from '../theme';
+import { Archive, Article, ContentPage, Project, Projects, Thought, ThoughtStream } from '../theme';
 import { site } from '../site.config';
 import { buildSectionPaths } from '../section-routes.mjs';
 
@@ -19,4 +19,6 @@ const next = index >= 0 ? items[index - 1] : undefined;
 {view === 'article' && <Article post={item} previous={previous} next={next} section={section}><Fragment set:html={item.data.html} /></Article>}
 {view === 'projects' && <Projects projects={items} section={section} />}
 {view === 'project' && <Project project={item} section={section}><Fragment set:html={item.data.html} /></Project>}
+{view === 'thoughts' && <ThoughtStream thoughts={items} section={section} />}
+{view === 'thought' && <Thought thought={item} section={section} />}
 {view === 'page' && <ContentPage eyebrow={section.eyebrow} heading={section.heading} intro={section.description}><Fragment set:html={section.html} /></ContentPage>}
