@@ -1,31 +1,71 @@
 {
-  "dataSourceId": "8b715c54-f0d4-4139-bfdb-0da86a27c44d",
+  "databaseId": "cb97c82e-4f10-4ec7-b612-9ca07429e03c",
   "databaseUrl": "https://www.notion.so/cb97c82e4f104ec7b6129ca07429e03c",
-  "siteConfig": {
-    "databaseId": "3d77448d-2ab1-805c-af2c-d1459552ca89",
-    "databaseUrl": "https://www.notion.so/3d77448d2ab1805caf2cd1459552ca89",
-    "fields": {
-      "name": "站点名称",
-      "description": "简介",
-      "authorName": "作者名称",
-      "authorBio": "作者简介",
-      "avatar": "头像",
-      "email": "邮箱",
-      "github": "GitHub",
-      "x": "X",
-      "rss": "显示 RSS",
-      "theme": "显示明暗切换"
+  "sources": {
+    "settings": {
+      "name": "站点设置",
+      "fields": {
+        "name": "站点名称",
+        "description": "简介",
+        "authorName": "作者名称",
+        "authorBio": "作者简介",
+        "avatar": "头像",
+        "email": "邮箱",
+        "github": "GitHub",
+        "x": "X",
+        "rss": "显示 RSS",
+        "theme": "显示明暗切换"
+      }
+    },
+    "sections": {
+      "name": "栏目管理",
+      "fields": {
+        "name": "栏目",
+        "key": "标识",
+        "path": "路径",
+        "layout": "布局",
+        "enabled": "启用",
+        "navLabel": "导航名称",
+        "showInNav": "显示在导航",
+        "navOrder": "导航排序",
+        "eyebrow": "页眉",
+        "heading": "页面标题",
+        "description": "页面简介",
+        "showOnHome": "首页展示",
+        "homeTitle": "首页标题",
+        "homeDescription": "首页简介",
+        "homeLimit": "首页数量",
+        "contentSource": "内容数据源"
+      }
+    },
+    "content": {
+      "commonFields": {
+        "title": "标题",
+        "description": "摘要",
+        "status": "发布状态",
+        "published": "已发布",
+        "date": "发布日期",
+        "tags": "标签",
+        "slug": "路径",
+        "featured": "精选",
+        "cover": "封面"
+      },
+      "layouts": {
+        "文章列表": {
+          "kind": "article"
+        },
+        "项目网格": {
+          "kind": "project",
+          "fields": {
+            "projectStatus": "项目状态",
+            "projectType": "项目类型",
+            "projectUrl": "项目主页",
+            "repository": "代码仓库"
+          }
+        }
+      }
     }
   },
   "site": "https://gamecrafter.fun",
-  "syncWorker": "https://gamecrafter-notion-sync.zzciweb.workers.dev",
-  "fields": {
-    "title": "标题",
-    "description": "摘要",
-    "status": "发布状态",
-    "published": "已发布",
-    "date": "发布日期",
-    "tags": "标签",
-    "slug": "文章链接"
-  }
+  "syncWorker": "https://gamecrafter-notion-sync.zzciweb.workers.dev"
 }

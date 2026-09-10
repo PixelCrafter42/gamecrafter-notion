@@ -1,0 +1,11 @@
+---
+import { type CollectionEntry, getCollection } from 'astro:content';
+import { Project } from '../../theme';
+export async function getStaticPaths() {
+  const projects = await getCollection('projects', ({data})=>!data.draft);
+  return projects.map(project=>({params:{slug:project.id},props:project}));
+}
+type Props = CollectionEntry<'projects'>;
+const project = Astro.props;
+---
+<Project project={project}><Fragment set:html={project.data.html} /></Project>

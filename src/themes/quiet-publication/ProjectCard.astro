@@ -1,0 +1,25 @@
+---
+const { project, compact = false } = Astro.props;
+const data = project.data;
+---
+<article class:list={['project-card', { compact }] }>
+  {data.cover && <a class="cover" href={`/projects/${project.id}/`} tabindex="-1"><img src={data.cover} alt="" loading="lazy" /></a>}
+  <div class="project-meta">
+    {data.projectStatus && <span>{data.projectStatus}</span>}
+    {data.projectType && <span>{data.projectType}</span>}
+  </div>
+  <h3><a href={`/projects/${project.id}/`}>{data.title}</a></h3>
+  <p>{data.description}</p>
+  {data.tags.length > 0 && <div class="tags">{data.tags.map((tag: string) => <span class="tag">#{tag}</span>)}</div>}
+</article>
+<style>
+  .project-card { padding:1.4rem 0; border-bottom:1px solid var(--line); }
+  .project-card.compact { padding:1rem; border:1px solid var(--line); }
+  .cover { display:block; aspect-ratio:16/9; overflow:hidden; margin:-1rem -1rem 1rem; background:var(--soft); }
+  .cover img { width:100%; height:100%; object-fit:cover; }
+  .project-meta { display:flex; gap:.6rem; color:var(--accent); font:.72rem ui-monospace,monospace; }
+  h3 { margin:.35rem 0; font-size:1.3rem; }
+  h3 a { text-decoration:none; }
+  h3 a:hover { text-decoration:underline; }
+  p { margin:.25rem 0; color:var(--muted); }
+</style>

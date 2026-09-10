@@ -5,3 +5,5 @@ export { default as Archive } from './themes/quiet-publication/Archive.astro';
 export { default as Article } from './themes/quiet-publication/Article.astro';
 export { default as ContentPage } from './themes/quiet-publication/ContentPage.astro';
 export { default as NotFound } from './themes/quiet-publication/NotFound.astro';
+export { default as Projects } from './themes/quiet-publication/Projects.astro';
+export { default as Project } from './themes/quiet-publication/Project.astro';

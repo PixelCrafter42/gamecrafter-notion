@@ -1,7 +1,10 @@
 ---
 import { site } from '../../site.config';
 import Icon from './Icon.astro';
-const links = [{ href: '/', label: '首页' }, { href: '/blog/', label: '写作' }, { href: '/about/', label: '关于' }];
+const links = site.sections
+  .filter(section => section.showInNav)
+  .sort((a,b) => a.navOrder - b.navOrder)
+  .map(section => ({href:section.path === '/' ? '/' : `${section.path}/`,label:section.navLabel}));
 ---
 <header class="site-header container">
   <a class="brand" href="/" aria-label={`${site.name} 首页`}>

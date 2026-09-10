@@ -5,7 +5,7 @@
 
 ## 写作与发布
 
-在「博客文章」数据库写文章，状态为「已发布」才会出现在网站。
+「博客后台 · gamecrafter.fun」是统一的多数据源数据库。通过顶部标签进入「写作」「项目」「站点设置」和「栏目管理」。写作和项目拥有各自字段，状态为「已发布」才会出现在网站。
 
 - 修改文章属性（包括发布状态）：只同步该篇文章。
 - 编辑正文后点击该行的「发布」按钮字段：只同步该篇文章。
@@ -37,18 +37,22 @@ Worker Durable Object 保存每篇文章最后一次请求的版本及全量请�
 
 ## 配置
 
-站点名称、简介、作者资料、头像、邮箱、社交链接、RSS 和明暗模式开关统一放在 Notion 的“站点配置 · gamecrafter.fun”数据库。修改唯一一条配置记录后，点击博客管理页的“全量更新”发布；头像会下载到站点资源中，不依赖会过期的 Notion 文件地址。`src/site.config.ts` 只负责读取同步生成的配置并固定正式域名。
+「站点设置」只保存站点名称、简介、作者资料、头像、邮箱、社交链接、RSS 和明暗模式。「栏目管理」每行代表一个栏目，管理路径、导航、页面标题、首页展示和内容数据源；“关于”记录的页面正文就是网站关于页正文。属性修改会自动触发增量发布，正文修改完成后点击对应行的「发布」按钮。头像和正文附件会下载到站点资源中，不依赖会过期的 Notion 文件地址。`src/site.config.ts` 只负责读取同步生成的配置并固定正式域名。
+
+项目与文章使用独立数据源，但复用同一个发布按钮和增量机制。项目可填写状态、项目类型、项目主页、代码仓库、封面和“精选”；精选项目优先出现在首页。
+
+扩展栏目时遵循“控制信息在栏目管理、内容字段在独立数据源”的结构。所有内容数据源共享标题、摘要、发布状态、发布日期、标签、路径、封面和精选字段，再增加模块专属字段。使用现有布局只需新增数据源和栏目记录；增加新的页面形态时，在 `notion.config.json` 注册布局适配器并为主题增加对应组件，同步核心和其他数据源无需改动。同步开始时会从数据库容器发现各数据源 ID，因此移动或新增数据源不需要增加 Cloudflare 环境变量。
 
 当前主题是 [A Quiet Publication](https://github.com/Liyuk/astro-fourfold)，主题组件位于 `src/themes/quiet-publication/`，`src/theme.ts` 是页面使用的主题入口。Notion 同步与主题目录彼此独立；以后接入其他主题时实现相同的页面组件，再在 `src/theme.ts` 切换导出即可，不需要修改同步 Worker。
 
 主题专属的视觉配置位于 `src/themes/quiet-publication/theme.config.ts`；首页首屏的字号和留白可以直接在这里调整。
 
-Pages 生产环境加密密钥：NOTION_TOKEN（仅文章库只读）、SYNC_KEY（与 Worker PUBLISH_KEY 一致）。
+Pages 生产环境加密密钥：NOTION_TOKEN（博客后台只读）、SYNC_KEY（与 Worker PUBLISH_KEY 一致）。
 Worker 位于 workers/notion-webhook，密钥为 SETUP_KEY、PUBLISH_KEY、DEPLOY_HOOK_URL。
 
 - 自动事件：page.created、page.properties_updated、page.deleted、page.undeleted、page.moved。
 - 自动端点：/notion/<SETUP_KEY>，验证 Notion HMAC 签名。
-- 数据库按钮端点：/article/<PUBLISH_KEY>，从 Notion 标准按钮请求的 data.id 获取文章 ID。
+- 数据库按钮端点：/article/<PUBLISH_KEY>，从 Notion 标准按钮请求的 data.id 获取任意内容或栏目页面 ID。
 - 全量按钮端点：/publish/<PUBLISH_KEY>。
 - 构建计划端点：/plan，Authorization: Bearer <SYNC_KEY>。
 

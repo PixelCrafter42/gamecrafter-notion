@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 const source = (await readFile(new URL('./pages-worker.mjs', import.meta.url), 'utf8'))
   .replace('"BUILD_VERSION"', '"revision-test"')
-  .replace('["ARTICLE_PATHS"]', '["/blog/live", "/blog/live/", "/blog/live/index.html"]');
+  .replace('["CONTENT_PATHS"]', '["/blog/live", "/blog/live/", "/blog/live/index.html", "/projects/tool", "/projects/tool/", "/projects/tool/index.html"]');
 const { default: worker } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
 
 test('withdrawn article cannot serve a stale body, including direct index.html access', async () => {
@@ -16,6 +16,13 @@ test('withdrawn article cannot serve a stale body, including direct index.html a
     assert.equal(await result.text(), 'Not found');
     assert.equal(result.headers.get('Cache-Control'), 'no-store');
   }
+});
+test('withdrawn project cannot serve a stale body', async () => {
+  const result = await worker.fetch(new Request('https://example.com/projects/retired/'), { ASSETS: {
+    fetch: async request => new Response(new URL(request.url).pathname === '/404.html' ? 'Not found' : 'STALE PROJECT'),
+  }});
+  assert.equal(result.status, 404);
+  assert.equal(await result.text(), 'Not found');
 });
 test('published article uses build-specific asset cache and ignores old conditional requests', async () => {
   const result = await worker.fetch(new Request('https://example.com/blog/live/?__deployment=old', {

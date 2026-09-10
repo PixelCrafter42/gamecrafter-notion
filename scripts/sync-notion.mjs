@@ -5,27 +5,131 @@ import { resolve, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { plainText, renderBlocks, safeUrl } from './notion-render.mjs';
 
-export function metadata(page, fields) {
-  if (page.archived || page.in_trash || page.is_archived || page.properties?.[fields.status]?.select?.name !== fields.published) return null;
-  const p = page.properties;
-  const title = plainText(p[fields.title]?.title).trim();
-  if (!title) throw new Error('已发布文章必须填写标题');
-  const id = plainText(p[fields.slug]?.rich_text).trim() || page.id.replaceAll('-', '');
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) throw new Error('文章链接只能使用小写英文字母、数字和短横线');
-  const rawDate = p[fields.date]?.date?.start || page.created_time;
-  if (!rawDate || Number.isNaN(Date.parse(rawDate))) throw new Error('文章发布日期无效');
-  return {id, title, description:plainText(p[fields.description]?.rich_text).trim() || title, pubDate:new Date(rawDate).toISOString(), tags:(p[fields.tags]?.multi_select ?? []).map(t=>t.name), draft:false};
+const compactId=value=>String(value || '').replaceAll('-','').toLowerCase();
+const normalizedPath=value=>{
+  const path=String(value || '').trim();
+  if (path==='/') return '/';
+  if (!/^\/[a-z0-9]+(?:-[a-z0-9]+)*$/.test(path)) throw new Error('栏目路径必须以 / 开头，并且只能使用小写英文字母、数字和短横线');
+  return path;
+};
+
+async function queryAll(request,sourceId,body={}) {
+  const pages=[];let cursor;
+  do {
+    const result=await request('data_sources/'+sourceId+'/query',{method:'POST',body:{page_size:100,...body,...(cursor?{start_cursor:cursor}:{})}});
+    if (!Array.isArray(result.results) || (result.has_more && !result.next_cursor)) throw new Error('Notion 查询返回不完整');
+    pages.push(...result.results);cursor=result.has_more?result.next_cursor:null;
+  } while(cursor);
+  return pages;
 }
 
-export async function collectSnapshot({ request, config, media, previous=[], targets=null }) {
-  if (targets && !targets.length) return structuredClone(previous);
-  // Check the schema first: a renamed/missing field must not silently clear the website.
-  const source = await request('data_sources/' + config.dataSourceId);
-  for (const [key,type] of [['title','title'],['description','rich_text'],['status','select'],['date','date'],['tags','multi_select'],['slug','rich_text']]) {
-    if (source.properties?.[config.fields[key]]?.type !== type) throw new Error('Notion 字段缺失或类型变化：' + config.fields[key]);
+function blockReader(request,label='页面') {
+  return async id=>{
+    const all=[];let cursor;
+    do {
+      const value=await request('blocks/'+id+'/children?page_size=100'+(cursor?'&start_cursor='+encodeURIComponent(cursor):''));
+      if (!Array.isArray(value.results) || (value.has_more && !value.next_cursor)) throw new Error(label+'内容返回不完整');
+      all.push(...value.results);cursor=value.has_more?value.next_cursor:null;
+    } while(cursor);
+    return all;
+  };
+}
+
+function requireSchema(source,fields,expected,label) {
+  for (const [key,type] of Object.entries(expected)) if (source.properties?.[fields[key]]?.type!==type) {
+    throw new Error(label+'字段缺失或类型变化：'+fields[key]);
   }
-  const pages = []; let cursor;
-  const targeted=new Set((targets || []).map(t=>t.id));
+}
+
+export async function discoverSources({request,config}) {
+  const database=await request('databases/'+config.databaseId);
+  if (!Array.isArray(database.data_sources)) throw new Error('博客后台数据源无效');
+  const byName=new Map();
+  for (const source of database.data_sources) {
+    if (!source?.id || !source?.name || byName.has(source.name)) throw new Error('博客后台存在无效或重名的数据源');
+    byName.set(source.name,source.id);
+  }
+  for (const name of [config.sources.settings.name,config.sources.sections.name]) if (!byName.has(name)) throw new Error('博客后台缺少数据源：'+name);
+  return {database,byName};
+}
+
+export async function collectSections({request,config,sources,media}) {
+  const settings=config.sources.sections;
+  const sourceId=sources.byName.get(settings.name);
+  const source=await request('data_sources/'+sourceId);
+  requireSchema(source,settings.fields,{name:'title',key:'rich_text',path:'rich_text',layout:'select',enabled:'checkbox',navLabel:'rich_text',showInNav:'checkbox',navOrder:'number',eyebrow:'rich_text',heading:'rich_text',description:'rich_text',showOnHome:'checkbox',homeTitle:'rich_text',homeDescription:'rich_text',homeLimit:'number',contentSource:'rich_text'},'栏目管理');
+  const pages=await queryAll(request,sourceId);
+  const children=blockReader(request,'栏目页面');
+  const sections=[];
+  for (const page of pages) {
+    if (page.in_trash || page.is_archived) continue;
+    const p=page.properties;
+    const text=(key,type='rich_text')=>plainText(p[settings.fields[key]]?.[type]).trim();
+    const key=text('key');
+    if (!/^[a-z][a-z0-9-]*$/.test(key)) throw new Error('栏目标识只能使用小写英文字母、数字和短横线');
+    const layout=p[settings.fields.layout]?.select?.name || '';
+    const contentSource=text('contentSource');
+    if (contentSource && !config.sources.content.layouts[layout]) throw new Error('栏目“'+key+'”使用了尚未支持的内容布局：'+layout);
+    if (contentSource && !sources.byName.has(contentSource)) throw new Error('栏目“'+key+'”找不到内容数据源：'+contentSource);
+    const mediaIndex={};
+    const html=layout==='普通页面' ? await renderBlocks(await children(page.id),{children,media:body=>media(body,mediaIndex)}) : '';
+    sections.push({
+      key,name:text('name','title') || key,path:normalizedPath(text('path')),layout,enabled:!!p[settings.fields.enabled]?.checkbox,
+      navLabel:text('navLabel') || text('name','title') || key,showInNav:!!p[settings.fields.showInNav]?.checkbox,navOrder:p[settings.fields.navOrder]?.number ?? 999,
+      eyebrow:text('eyebrow'),heading:text('heading') || text('name','title') || key,description:text('description'),
+      showOnHome:!!p[settings.fields.showOnHome]?.checkbox,homeTitle:text('homeTitle'),homeDescription:text('homeDescription'),homeLimit:Math.max(0,p[settings.fields.homeLimit]?.number ?? 0),
+      contentSource,sourceId:contentSource?sources.byName.get(contentSource):'',sourcePageId:page.id,html,mediaIndex,
+    });
+  }
+  const keys=new Set(),paths=new Set();
+  for (const section of sections) {
+    if (keys.has(section.key) || paths.has(section.path)) throw new Error('栏目标识或路径重复：'+section.key);
+    keys.add(section.key);paths.add(section.path);
+  }
+  if (!sections.some(section=>section.key==='home' && section.enabled)) throw new Error('栏目管理必须保留启用的首页');
+  return sections.sort((a,b)=>a.navOrder-b.navOrder || a.key.localeCompare(b.key));
+}
+
+export function metadata(page,{section,common,adapter}) {
+  if (page.in_trash || page.is_archived || page.properties?.[common.status]?.select?.name!==common.published) return null;
+  const p=page.properties;
+  const title=plainText(p[common.title]?.title).trim();
+  if (!title) throw new Error('已发布内容必须填写标题');
+  const id=plainText(p[common.slug]?.rich_text).trim() || page.id.replaceAll('-','');
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) throw new Error('内容路径只能使用小写英文字母、数字和短横线');
+  const rawDate=p[common.date]?.date?.start || page.created_time;
+  if (!rawDate || Number.isNaN(Date.parse(rawDate))) throw new Error('内容发布日期无效');
+  const publicUrl=(field,label)=>{
+    const value=field?p[field]?.url:'';
+    if (!value) return '';
+    const href=safeUrl(value);
+    if (!href || !href.startsWith('https://')) throw new Error(label+'必须使用 HTTPS');
+    return href;
+  };
+  const fields=adapter.fields || {};
+  return {
+    id,kind:adapter.kind,moduleKey:section.key,modulePath:section.path,title,
+    description:plainText(p[common.description]?.rich_text).trim() || title,
+    pubDate:new Date(rawDate).toISOString(),tags:(p[common.tags]?.multi_select || []).map(tag=>tag.name),draft:false,featured:!!p[common.featured]?.checkbox,
+    projectStatus:adapter.kind==='project'?(p[fields.projectStatus]?.select?.name || ''):'',
+    projectType:adapter.kind==='project'?plainText(p[fields.projectType]?.rich_text).trim():'',
+    projectUrl:adapter.kind==='project'?publicUrl(fields.projectUrl,'项目主页'):'',
+    repository:adapter.kind==='project'?publicUrl(fields.repository,'代码仓库'):'',
+  };
+}
+
+export async function collectSnapshot({request,config,media,previous=[],targets=null,sources,sections}) {
+  if (targets && !targets.length) return structuredClone(previous);
+  const common=config.sources.content.commonFields;
+  const modules=sections.filter(section=>section.enabled && section.contentSource).map(section=>({section,sourceId:section.sourceId,adapter:config.sources.content.layouts[section.layout]}));
+  const bySource=new Map(modules.map(module=>[compactId(module.sourceId),module]));
+  for (const module of modules) {
+    const source=await request('data_sources/'+module.sourceId);
+    requireSchema(source,common,{title:'title',description:'rich_text',status:'select',date:'date',tags:'multi_select',slug:'rich_text',featured:'checkbox',cover:'files'},module.section.name);
+    if (module.adapter.kind==='project') requireSchema(source,module.adapter.fields,{projectStatus:'select',projectType:'rich_text',projectUrl:'url',repository:'url'},module.section.name);
+  }
+  const queued=[];
+  const targeted=new Set((targets || []).map(target=>target.id));
   if (targets) {
     for (const target of targets) {
       let page;
@@ -33,74 +137,77 @@ export async function collectSnapshot({ request, config, media, previous=[], tar
         if (error.status===404 && ['page.deleted','page.moved'].includes(target.type)) continue;
         throw error;
       }
-      // Events for nested or moved pages must never publish content outside the article database.
-      if (page.parent?.data_source_id?.replaceAll('-','')!==config.dataSourceId.replaceAll('-','')) continue;
-      pages.push(page);
+      const module=bySource.get(compactId(page.parent?.data_source_id));
+      if (module) queued.push({page,...module});
     }
-  } else do {
-    const result = await request('data_sources/' + config.dataSourceId + '/query', {method:'POST',body:{page_size:100,filter:{property:config.fields.status,select:{equals:config.fields.published}},...(cursor ? {start_cursor:cursor} : {})}});
-    if (!Array.isArray(result.results) || (result.has_more && !result.next_cursor)) throw new Error('Notion 查询返回不完整');
-    pages.push(...result.results); cursor = result.has_more ? result.next_cursor : null;
-  } while (cursor);
-  const published = pages.map(page=>({page,data:metadata(page,config.fields)})).filter(p=>p.data);
-  const retained=targets ? previous.filter(post=>!targeted.has(post.sourcePageId)) : [];
-  const ids = new Set(retained.map(post=>post.id));
-  for (const {data} of published) { if (ids.has(data.id)) throw new Error('存在重复文章链接：' + data.id); ids.add(data.id); }
-  const links = new Map([...retained.map(post=>[post.sourcePageId,config.site+'/blog/'+post.id+'/']),...published.map(({page,data})=>[page.id,config.site+'/blog/'+data.id+'/'])]);
-  const children = async id => {
-    const all = []; let next;
-    do {
-      const result = await request('blocks/' + id + '/children?page_size=100' + (next ? '&start_cursor='+encodeURIComponent(next) : ''));
-      if (!Array.isArray(result.results) || (result.has_more && !result.next_cursor)) throw new Error('Notion 区块返回不完整');
-      all.push(...result.results); next = result.has_more ? result.next_cursor : null;
-    } while(next);
-    return all;
-  };
-  const posts = [...retained];
-  for (const {page,data} of published) {
-    const mediaIndex={};
-    const html = await renderBlocks(await children(page.id), {children,media:body=>media(body,mediaIndex),publishedLinks:links});
-    const current = await request('pages/' + page.id);
-    if (!metadata(current,config.fields) || current.last_edited_time !== page.last_edited_time) throw new Error('文章正在编辑或下线，留待下一次同步');
-    posts.push({...data,html,sourcePageId:page.id,mediaIndex});
+  } else {
+    for (const module of modules) {
+      const pages=await queryAll(request,module.sourceId,{filter:{property:common.status,select:{equals:common.published}}});
+      queued.push(...pages.map(page=>({page,...module})));
+    }
   }
-  return posts.sort((a,b)=>a.id.localeCompare(b.id));
+  const published=queued.map(item=>({...item,data:metadata(item.page,{section:item.section,common,adapter:item.adapter})})).filter(item=>item.data);
+  const retained=targets?previous.filter(item=>!targeted.has(item.sourcePageId)):[];
+  const routes=new Set(retained.map(item=>item.moduleKey+':'+item.id));
+  for (const {data} of published) {
+    const route=data.moduleKey+':'+data.id;
+    if (routes.has(route)) throw new Error('同一栏目存在重复内容路径：'+data.id);
+    routes.add(route);
+  }
+  const route=item=>config.site+(item.modulePath==='/'?'':item.modulePath)+'/'+item.id+'/';
+  const links=new Map([...retained.map(item=>[item.sourcePageId,route(item)]),...published.map(({page,data})=>[page.id,route(data)])]);
+  const children=blockReader(request,'内容页面');
+  const content=[...retained];
+  for (const {page,data,section,adapter} of published) {
+    const mediaIndex={};
+    const html=await renderBlocks(await children(page.id),{children,media:body=>media(body,mediaIndex),publishedLinks:links});
+    const current=await request('pages/'+page.id);
+    if (!metadata(current,{section,common,adapter}) || current.last_edited_time!==page.last_edited_time) throw new Error('内容正在编辑或下线，留待下一次同步');
+    const coverFile=page.properties?.[common.cover]?.files?.[0];
+    const cover=coverFile?await media(coverFile,mediaIndex):'';
+    content.push({...data,cover,html,sourcePageId:page.id,sourceId:page.parent?.data_source_id,mediaIndex});
+  }
+  return content.sort((a,b)=>(a.moduleKey+':'+a.id).localeCompare(b.moduleKey+':'+b.id));
 }
 
-export async function collectSiteConfig({request, config, media}) {
-  const settings=config.siteConfig;
-  if (!settings?.databaseId) return null;
-  const database=await request('databases/'+settings.databaseId);
-  const sources=database.data_sources;
-  if (!Array.isArray(sources) || sources.length!==1 || !sources[0]?.id) throw new Error('站点配置数据库来源无效');
-  const source=await request('data_sources/'+sources[0].id);
-  const expected={name:'title',description:'rich_text',authorName:'rich_text',authorBio:'rich_text',avatar:'files',email:'email',github:'url',x:'url',rss:'checkbox',theme:'checkbox'};
-  for (const [key,type] of Object.entries(expected)) if (source.properties?.[settings.fields[key]]?.type!==type) {
-    throw new Error('站点配置字段缺失或类型变化：'+settings.fields[key]);
-  }
-  const result=await request('data_sources/'+sources[0].id+'/query',{method:'POST',body:{page_size:2,sorts:[{timestamp:'last_edited_time',direction:'descending'}]}});
-  if (!Array.isArray(result.results) || result.results.length!==1) throw new Error('站点配置必须且只能保留一条记录');
-  const properties=result.results[0].properties;
+export async function collectSiteConfig({request,config,media,sources,sections}) {
+  const settings=config.sources.settings;
+  const sourceId=sources.byName.get(settings.name);
+  const source=await request('data_sources/'+sourceId);
+  requireSchema(source,settings.fields,{name:'title',description:'rich_text',authorName:'rich_text',authorBio:'rich_text',avatar:'files',email:'email',github:'url',x:'url',rss:'checkbox',theme:'checkbox'},'站点设置');
+  const rows=await queryAll(request,sourceId,{sorts:[{timestamp:'last_edited_time',direction:'descending'}]});
+  if (rows.length!==1) throw new Error('站点设置必须且只能保留一条记录');
+  const page=rows[0],properties=page.properties;
   const text=(key,type='rich_text')=>plainText(properties[settings.fields[key]]?.[type]).trim();
   const name=text('name','title');
   if (!name) throw new Error('站点名称不能为空');
   const authorName=text('authorName') || name;
   const email=String(properties[settings.fields.email]?.email || '').trim();
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('站点配置中的邮箱格式无效');
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('站点设置中的邮箱格式无效');
   const social=[];
   for (const [key,label] of [['github','GitHub'],['x','X']]) {
     const value=properties[settings.fields[key]]?.url;
-    if (value) { const href=safeUrl(value); if (!href || !href.startsWith('https://')) throw new Error(label+' 链接必须使用 HTTPS'); social.push({label,href}); }
+    if (value) {const href=safeUrl(value);if (!href || !href.startsWith('https://')) throw new Error(label+' 链接必须使用 HTTPS');social.push({label,href});}
   }
   if (email) social.push({label:'邮箱',href:'mailto:'+email});
+  const mediaIndex=Object.assign({},...sections.map(section=>section.mediaIndex));
   const avatarFile=properties[settings.fields.avatar]?.files?.[0];
-  const avatarIndex={};
-  const avatar=avatarFile ? {src:await media(avatarFile,avatarIndex),alt:authorName} : null;
+  const avatar=avatarFile?{src:await media(avatarFile,mediaIndex),alt:authorName}:null;
+  const active=sections.filter(section=>section.enabled);
+  const byKey=Object.fromEntries(active.map(section=>[section.key,section]));
+  const writing=byKey.writing || {},projects=byKey.projects || {},about=byKey.about || {};
   return {
-    name,title:name,description:text('description') || name,avatar,
-    author:{name:authorName,bio:text('authorBio'),email},
-    social,
-    features:{rss:!!properties[settings.fields.rss]?.checkbox,theme:!!properties[settings.fields.theme]?.checkbox},
+    name,title:name,description:text('description') || name,avatar,author:{name:authorName,bio:text('authorBio'),email},social,
+    sections:active.map(({mediaIndex,sourceId,...section})=>section),
+    navigation:{home:byKey.home?.navLabel || '首页',writing:writing.navLabel || '写作',projects:projects.navLabel || '项目',about:about.navLabel || '关于'},
+    pages:{
+      home:{writingTitle:writing.homeTitle || writing.navLabel || '写作',aboutTitle:about.homeTitle || about.heading || '关于',aboutDescription:about.homeDescription || about.description || ''},
+      writing:{eyebrow:writing.eyebrow || 'Writing',title:writing.heading || '写作'},
+      projects:{eyebrow:projects.eyebrow || 'Projects',title:projects.heading || '项目',description:projects.description || ''},
+      about:{eyebrow:about.eyebrow || 'About',title:about.heading || '关于',description:about.description || '',html:about.html || ''},
+    },
+    features:{rss:!!properties[settings.fields.rss]?.checkbox,theme:!!properties[settings.fields.theme]?.checkbox,projects:!!byKey.projects,about:!!byKey.about},
+    sourcePageId:page.id,mediaIndex,
   };
 }
 
@@ -128,25 +235,28 @@ export async function runSync() {
   const syncedAt=new Date().toISOString();
   const root = resolve(dirname(fileURLToPath(import.meta.url)),'..');
   const config = JSON.parse(await readFile(resolve(root,'notion.config.json'),'utf8'));
-  let previous=[],revision=0,targets=null;
+  let previous=[],previousSiteConfig=null,revision=0,targets=null,cacheCompatible=false;
   const remote=process.env.SYNC_KEY;
   if (remote) {
     const response=await fetch(config.site+'/_notion-content.json?t='+Date.now(),{cache:'no-store',signal:AbortSignal.timeout(30000)});
     if (response.ok) {
       const base=await response.json();
-      if (base.version!==1 || !Number.isSafeInteger(base.revision) || !Array.isArray(base.posts) || base.posts.some(p=>!p.sourcePageId || typeof p.html!=='string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(p.id))) throw new Error('已发布内容缓存无效');
-      previous=base.posts;revision=base.revision;
+      if (!Number.isSafeInteger(base.revision)) throw new Error('已发布内容缓存版本无效');
+      revision=base.revision;
+      if (base.version===2 && Array.isArray(base.posts) && !base.posts.some(p=>!p.sourcePageId || !p.moduleKey || !p.modulePath || typeof p.html!=='string' || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(p.id))) {
+        previous=base.posts;previousSiteConfig=base.siteConfig || null;cacheCompatible=true;
+      }
     } else if (response.status!==404) throw new Error('无法读取已发布内容缓存');
     const planning=await fetch(config.syncWorker+'/plan?since='+revision,{headers:{Authorization:'Bearer '+remote},signal:AbortSignal.timeout(30000)});
     if (!planning.ok) throw new Error('无法获取单篇同步计划');
     const plan=await planning.json();
     if (!Number.isSafeInteger(plan.revision) || plan.revision<revision || !Array.isArray(plan.targets)) throw new Error('单篇同步计划无效');
     if (!response.ok && !plan.full) throw new Error('首次初始化需点击全量更新按钮');
-    revision=plan.revision;targets=plan.full?null:plan.targets;
+    revision=plan.revision;targets=plan.full || !cacheCompatible?null:plan.targets;
   } else if (process.env.CF_PAGES) throw new Error('缺少 SYNC_KEY，停止构建以避免意外全量发布');
   const request = createRequest({token:process.env.NOTION_TOKEN,cliScript:process.env.NOTION_CLI_SCRIPT});
   const assets = new Map();
-  const cachedMedia=Object.assign({},...previous.map(post=>post.mediaIndex || {}));
+  const cachedMedia=Object.assign({},...previous.map(post=>post.mediaIndex || {}),previousSiteConfig?.mediaIndex || {});
   const assetName=/^[a-f0-9]{64}\.(?:jpg|png|gif|webp|avif|pdf|mp4|mp3|m4a|txt)$/;
   const media = async (body,index) => {
     if (body.type==='external') return safeUrl(body.external?.url);
@@ -169,10 +279,12 @@ export async function runSync() {
     assets.set(name,bytes);index[key]=name; return '/notion-media/'+name;
   };
   // Finish every API call before changing any generated file.
-  const posts = await collectSnapshot({request,config,media,previous,targets});
-  const siteConfig = await collectSiteConfig({request,config,media});
+  const sources=await discoverSources({request,config});
+  const sections=await collectSections({request,config,sources,media});
+  const content = await collectSnapshot({request,config,media,previous,targets,sources,sections});
+  const siteConfig = await collectSiteConfig({request,config,media,sources,sections});
   // Retain unchanged files from the published CDN instead of re-downloading them from Notion.
-  const needed=[...new Set(posts.flatMap(post=>Object.values(post.mediaIndex || {})))];
+  const needed=[...new Set([...content.flatMap(item=>Object.values(item.mediaIndex || {})),...Object.values(siteConfig?.mediaIndex || {})])];
   let nextAsset=0;
   await Promise.all(Array.from({length:Math.min(6,needed.length)},async()=>{
     while(nextAsset<needed.length) {
@@ -191,18 +303,22 @@ export async function runSync() {
   const dataDir=resolve(root,'src/data'), assetDir=resolve(root,'public/notion-media');
   await mkdir(dataDir,{recursive:true}); await mkdir(assetDir,{recursive:true});
   for (const [name,bytes] of assets) await writeFile(resolve(assetDir,name),bytes);
+  const posts=content.filter(item=>item.kind!=='project');
+  const projects=content.filter(item=>item.kind==='project');
   const output=resolve(dataDir,'notion-posts.json');
   await writeFile(output+'.tmp',JSON.stringify(posts,null,2)+'\n'); await rename(output+'.tmp',output);
+  const projectsOutput=resolve(dataDir,'notion-projects.json');
+  await writeFile(projectsOutput+'.tmp',JSON.stringify(projects,null,2)+'\n'); await rename(projectsOutput+'.tmp',projectsOutput);
   if (siteConfig) await writeFile(resolve(dataDir,'site-config.json'),JSON.stringify(siteConfig,null,2)+'\n');
-  await writeFile(resolve(root,'public/_notion-content.json'),JSON.stringify({version:1,revision,posts,siteConfig})+'\n');
-  await writeFile(resolve(root,'public/_notion-sync.json'),JSON.stringify({syncedAt,revision,mode:targets===null?'full':'incremental',updated:targets===null?posts.length:targets.length})+'\n');
+  await writeFile(resolve(root,'public/_notion-content.json'),JSON.stringify({version:2,revision,posts:content,siteConfig})+'\n');
+  await writeFile(resolve(root,'public/_notion-sync.json'),JSON.stringify({syncedAt,revision,mode:targets===null?'full':'incremental',updated:targets===null?content.length:targets.length})+'\n');
   // Delete only generated hash-named files inside this project's generated asset directory.
   for (const name of await readdir(assetDir)) if (/^[a-f0-9]{64}\.[a-z0-9]+$/.test(name) && !assets.has(name)) {
     const target=resolve(assetDir,name);
     if (dirname(target)!==assetDir || basename(target)!==name) throw new Error('附件路径校验失败');
     await unlink(target);
   }
-  console.log('Notion '+(targets===null?'全量':'单篇增量')+'同步完成：本次读取 '+(targets===null?posts.length:targets.length)+' 篇，合计 '+posts.length+' 篇已发布文章，'+assets.size+' 个附件。');
+  console.log('Notion '+(targets===null?'全量':'单篇增量')+'同步完成：本次读取 '+(targets===null?content.length:targets.length)+' 条，合计 '+posts.length+' 篇文章、'+projects.length+' 个项目，'+assets.size+' 个附件。');
 }
 
 if (process.argv[1] && resolve(process.argv[1])===fileURLToPath(import.meta.url)) runSync().catch(error=>{console.error(error.message);process.exitCode=1;});

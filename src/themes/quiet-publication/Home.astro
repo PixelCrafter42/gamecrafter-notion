@@ -3,8 +3,15 @@ import { site } from '../../site.config';
 import BaseLayout from './BaseLayout.astro';
 import Icon from './Icon.astro';
 import PostCard from './PostCard.astro';
+import ProjectCard from './ProjectCard.astro';
 import { quietPublicationTheme } from './theme.config';
-const { posts } = Astro.props;
+const { posts, projects = [] } = Astro.props;
+const writingSection = site.sections.find(section => section.key === 'writing');
+const projectsSection = site.sections.find(section => section.key === 'projects');
+const aboutSection = site.sections.find(section => section.key === 'about');
+const postLimit = writingSection?.homeLimit || 5;
+const projectLimit = projectsSection?.homeLimit || 3;
+const featuredProjects = [...projects].sort((a,b)=>Number(b.data.featured)-Number(a.data.featured) || b.data.pubDate.valueOf()-a.data.pubDate.valueOf()).slice(0,projectLimit);
 const heroStyle = [
   `--hero-spacing:${quietPublicationTheme.homeIntro.spacing}`,
   `--hero-lede-size:${quietPublicationTheme.homeIntro.ledeSize}`,
@@ -15,17 +22,21 @@ const heroStyle = [
     <p class="lede">{site.description}</p>
     <p class="author">{site.author.bio}</p>
   </section>
-  <section class="container">
-    <div class="section-heading"><h2><span>01 /</span> 写作</h2><a href="/blog/">全部 {posts.length} 篇 <Icon name="arrowRight" size="sm" /></a></div>
+  {writingSection?.showOnHome && <section class="container">
+    <div class="section-heading"><h2><span>01 /</span> {site.pages.home.writingTitle}</h2><a href="/blog/">全部 {posts.length} 篇 <Icon name="arrowRight" size="sm" /></a></div>
     <p class="eyebrow sub">最近更新</p>
-    {posts.length > 0 ? <div class="list">{posts.slice(0, 5).map(post => <PostCard post={post} />)}</div> : <p class="empty">还没有公开文章。</p>}
-  </section>
-  <section class="start container">
-    <p class="eyebrow">02 / 关于</p>
-    <h2>慢慢写，慢慢积累。</h2>
-    <p>这里用来存放想法、尝试，以及值得留下的记录。</p>
+    {posts.length > 0 ? <div class="list">{posts.slice(0, postLimit).map(post => <PostCard post={post} />)}</div> : <p class="empty">还没有公开文章。</p>}
+  </section>}
+  {projectsSection?.showOnHome && <section class="container">
+    <div class="section-heading"><h2><span>02 /</span> {site.navigation.projects}</h2><a href="/projects/">全部 {projects.length} 个 <Icon name="arrowRight" size="sm" /></a></div>
+    {featuredProjects.length > 0 ? <div class="project-grid">{featuredProjects.map(project => <ProjectCard project={project} compact />)}</div> : <p class="empty">还没有公开项目。</p>}
+  </section>}
+  {aboutSection?.showOnHome && <section class="start container">
+    <p class="eyebrow">{projectsSection?.showOnHome ? '03' : '02'} / {site.navigation.about}</p>
+    <h2>{site.pages.home.aboutTitle}</h2>
+    <p>{site.pages.home.aboutDescription}</p>
     <a href="/about/">了解更多 <Icon name="arrowRight" size="sm" /></a>
-  </section>
+  </section>}
 </BaseLayout>
 <style>
   .hero { padding:var(--hero-spacing); }
@@ -37,4 +48,6 @@ const heroStyle = [
   .sub { margin-top:2rem; }
   .start { margin-top:5rem; padding:3rem 0; border-block:1px solid var(--line); }
   .start h2 { font-size:clamp(2rem,5vw,4rem); margin:.4rem 0; letter-spacing:-.05em; }
+  .project-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; margin-top:1rem; }
+  @media(max-width:48rem) { .project-grid { grid-template-columns:1fr; } }
 </style>
