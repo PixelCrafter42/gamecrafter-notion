@@ -97,6 +97,26 @@
       "contentSource": "",
       "sourcePageId": "3d77448d-2ab1-81ed-8830-cb996fc3c232",
       "html": "<p>很高兴认识你</p><p><a href=\"https://gamecrafter.fun/rss.xml\" rel=\"noopener noreferrer\">如果愿意，可以通过 RSS 订阅更新。</a></p>"
+    },
+    {
+      "key": "memo",
+      "name": "想法",
+      "path": "/memo",
+      "layout": "动态流",
+      "enabled": true,
+      "navLabel": "想法",
+      "showInNav": true,
+      "navOrder": 4,
+      "eyebrow": "Thoughts",
+      "heading": "随手记下来的想法。",
+      "description": "一些短小、及时，不必展开成长文章的记录。",
+      "showOnHome": false,
+      "homeTitle": "想法",
+      "homeDescription": "最近想到的几件小事。",
+      "homeLimit": 5,
+      "contentSource": "想法",
+      "sourcePageId": "3d77448d-2ab1-809b-ae14-d38c58abdf6e",
+      "html": ""
     }
   ],
   "navigation": {

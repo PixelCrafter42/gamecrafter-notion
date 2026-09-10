@@ -21,6 +21,13 @@ test('a new article-list section produces index and detail routes without code c
   assert.equal(routes[0].props.view,'archive');
   assert.equal(routes[1].props.view,'article');
 });
+test('a thought stream produces its feed and permalink routes',()=>{
+  const section={key:'thoughts',path:'/thoughts',layout:'动态流',enabled:true};
+  const thought={id:'small-idea',data:{moduleKey:'thoughts'}};
+  const routes=buildSectionPaths({sections:[section],posts:[thought],projects:[]});
+  assert.deepEqual(routes.map(route=>route.props.view),['thoughts','thought']);
+  assert.deepEqual(routes.map(route=>route.params.path),['thoughts','thoughts/small-idea']);
+});
 
 test('withdrawn article cannot serve a stale body, including direct index.html access', async () => {
   for (const path of ['/blog/draft/', '/blog/draft', '/blog/draft/index.html']) {

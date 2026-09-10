@@ -112,7 +112,7 @@ export function metadata(page,{section,common,adapter}) {
   return {
     id,kind:adapter.kind,moduleKey:section.key,modulePath:section.path,title,
     description:plainText(p[common.description]?.rich_text).trim() || title,
-    pubDate:new Date(rawDate).toISOString(),tags:(p[common.tags]?.multi_select || []).map(tag=>tag.name),draft:false,featured:!!p[common.featured]?.checkbox,
+    pubDate:new Date(rawDate).toISOString(),publishedHasTime:rawDate.includes('T'),tags:(p[common.tags]?.multi_select || []).map(tag=>tag.name),draft:false,featured:!!p[common.featured]?.checkbox,
     projectStatus:adapter.kind==='project'?(p[fields.projectStatus]?.select?.name || ''):'',
     projectType:adapter.kind==='project'?plainText(p[fields.projectType]?.rich_text).trim():'',
     projectUrl:adapter.kind==='project'?publicUrl(fields.projectUrl,'项目主页'):'',
@@ -320,7 +320,8 @@ export async function runSync() {
     if (dirname(target)!==assetDir || basename(target)!==name) throw new Error('附件路径校验失败');
     await unlink(target);
   }
-  console.log('Notion '+(targets===null?'全量':'单篇增量')+'同步完成：本次读取 '+(targets===null?content.length:targets.length)+' 条，合计 '+posts.length+' 篇文章、'+projects.length+' 个项目，'+assets.size+' 个附件。');
+  const moduleCounts=sections.filter(section=>section.enabled && section.contentSource).map(section=>section.name+' '+content.filter(item=>item.moduleKey===section.key).length+' 条');
+  console.log('Notion '+(targets===null?'全量':'单篇增量')+'同步完成：本次读取 '+(targets===null?content.length:targets.length)+' 条，合计 '+moduleCounts.join('、')+'，'+assets.size+' 个附件。');
 }
 
 if (process.argv[1] && resolve(process.argv[1])===fileURLToPath(import.meta.url)) runSync().catch(error=>{console.error(error.message);process.exitCode=1;});

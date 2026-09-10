@@ -4,6 +4,7 @@ import BaseLayout from './BaseLayout.astro';
 import Icon from './Icon.astro';
 import PostCard from './PostCard.astro';
 import ProjectCard from './ProjectCard.astro';
+import ThoughtCard from './ThoughtCard.astro';
 import { quietPublicationTheme } from './theme.config';
 const { posts, projects = [] } = Astro.props;
 const homeSections = site.sections.filter(section => section.showOnHome && section.key !== 'home').sort((a,b)=>a.navOrder-b.navOrder);
@@ -36,6 +37,10 @@ const heroStyle = [
       <div class="section-heading"><h2><span>{number} /</span> {section.homeTitle || section.navLabel}</h2><a href={`${section.path}/`}>全部 {count} 个 <Icon name="arrowRight" size="sm" /></a></div>
       {items.length > 0 ? <div class="project-grid">{items.map(project => <ProjectCard project={project} compact />)}</div> : <p class="empty">还没有公开内容。</p>}
     </section>;
+    if (section.layout === '动态流') return <section class="container">
+      <div class="section-heading"><h2><span>{number} /</span> {section.homeTitle || section.navLabel}</h2><a href={`${section.path}/`}>全部 {count} 条 <Icon name="arrowRight" size="sm" /></a></div>
+      {items.length > 0 ? <div class="thought-preview">{items.map(thought => <ThoughtCard thought={thought} compact />)}</div> : <p class="empty">还没有公开想法。</p>}
+    </section>;
     return <section class="container">
       <div class="section-heading"><h2><span>{number} /</span> {section.homeTitle || section.navLabel}</h2><a href={`${section.path}/`}>全部 {count} 篇 <Icon name="arrowRight" size="sm" /></a></div>
       <p class="eyebrow sub">最近更新</p>
@@ -54,5 +59,6 @@ const heroStyle = [
   .start { margin-top:5rem; padding:3rem 0; border-block:1px solid var(--line); }
   .start h2 { font-size:clamp(2rem,5vw,4rem); margin:.4rem 0; letter-spacing:-.05em; }
   .project-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; margin-top:1rem; }
+  .thought-preview { max-width:46rem; }
   @media(max-width:48rem) { .project-grid { grid-template-columns:1fr; } }
 </style>
