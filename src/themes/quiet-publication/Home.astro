@@ -1,0 +1,40 @@
+---
+import { site } from '../../site.config';
+import BaseLayout from './BaseLayout.astro';
+import Icon from './Icon.astro';
+import PostCard from './PostCard.astro';
+import { quietPublicationTheme } from './theme.config';
+const { posts } = Astro.props;
+const heroStyle = [
+  `--hero-spacing:${quietPublicationTheme.homeIntro.spacing}`,
+  `--hero-lede-size:${quietPublicationTheme.homeIntro.ledeSize}`,
+].join(';');
+---
+<BaseLayout>
+  <section class="hero container" style={heroStyle}>
+    <p class="lede">{site.description}</p>
+    <p class="author">{site.author.bio}</p>
+  </section>
+  <section class="container">
+    <div class="section-heading"><h2><span>01 /</span> 写作</h2><a href="/blog/">全部 {posts.length} 篇 <Icon name="arrowRight" size="sm" /></a></div>
+    <p class="eyebrow sub">最近更新</p>
+    {posts.length > 0 ? <div class="list">{posts.slice(0, 5).map(post => <PostCard post={post} />)}</div> : <p class="empty">还没有公开文章。</p>}
+  </section>
+  <section class="start container">
+    <p class="eyebrow">02 / 关于</p>
+    <h2>慢慢写，慢慢积累。</h2>
+    <p>这里用来存放想法、尝试，以及值得留下的记录。</p>
+    <a href="/about/">了解更多 <Icon name="arrowRight" size="sm" /></a>
+  </section>
+</BaseLayout>
+<style>
+  .hero { padding:var(--hero-spacing); }
+  .lede { font-size:var(--hero-lede-size); max-width:45rem; line-height:1.35; margin:0; }
+  .author { margin:.4rem 0 0; }
+  .author, .empty { color:var(--muted); max-width:40rem; }
+  .hero + section :global(.section-heading) { margin-top:3rem; }
+  .section-heading span { color:var(--accent); font-size:.8rem; font-family:ui-monospace,monospace; }
+  .sub { margin-top:2rem; }
+  .start { margin-top:5rem; padding:3rem 0; border-block:1px solid var(--line); }
+  .start h2 { font-size:clamp(2rem,5vw,4rem); margin:.4rem 0; letter-spacing:-.05em; }
+</style>

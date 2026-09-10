@@ -1,0 +1,19 @@
+---
+import { site } from '../../site.config';
+const { title = site.title, description = site.description, canonical, type = 'website', structuredData } = Astro.props;
+const url = canonical ?? new URL(Astro.url.pathname, site.url).toString();
+const structuredJson = structuredData ? JSON.stringify(structuredData).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026') : '';
+---
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width" />
+<meta name="description" content={description} />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="canonical" href={url} />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:type" content={type} />
+<meta property="og:url" content={url} />
+<meta name="twitter:card" content="summary" />
+<link rel="alternate" type="application/rss+xml" title={`${site.name} RSS`} href="/rss.xml" />
+{structuredData && <script is:inline type="application/ld+json" set:html={structuredJson} />}
+<title>{title}</title>

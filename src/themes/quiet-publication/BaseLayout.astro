@@ -1,0 +1,20 @@
+---
+import SEO from './SEO.astro';
+import Header from './Header.astro';
+import Footer from './Footer.astro';
+import './styles/global.css';
+const { title, description, canonical, type, structuredData, narrow = false } = Astro.props;
+---
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <SEO title={title} description={description} canonical={canonical} type={type} structuredData={structuredData} />
+    <script is:inline>try { document.documentElement.dataset.theme = localStorage.getItem('quiet-publication-theme') || 'system'; } catch { document.documentElement.dataset.theme = 'system'; }</script>
+  </head>
+  <body>
+    <a class="skip-link" href="#content">跳到正文</a>
+    <Header />
+    <main id="content" class:list={{ narrow }}><slot /></main>
+    <Footer />
+  </body>
+</html>

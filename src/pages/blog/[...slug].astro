@@ -1,11 +1,15 @@
 ---
 import { type CollectionEntry, getCollection } from 'astro:content';
-import BlogPost from '../../layouts/BlogPost.astro';
+import { Article } from '../../theme';
 export async function getStaticPaths() {
   const posts = await getCollection('blog', ({data})=>!data.draft);
   return posts.map(post=>({params:{slug:post.id},props:post}));
 }
 type Props = CollectionEntry<'blog'>;
 const post = Astro.props;
+const posts = (await getCollection('blog', ({data})=>!data.draft)).sort((a,b)=>b.data.pubDate.valueOf()-a.data.pubDate.valueOf());
+const index = posts.findIndex(item => item.id === post.id);
+const previous = posts[index + 1];
+const next = posts[index - 1];
 ---
-<BlogPost {...post.data}><Fragment set:html={post.data.html} /></BlogPost>
+<Article post={post} previous={previous} next={next}><Fragment set:html={post.data.html} /></Article>

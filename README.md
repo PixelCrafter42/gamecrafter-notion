@@ -37,6 +37,12 @@ Worker Durable Object 保存每篇文章最后一次请求的版本及全量请�
 
 ## 配置
 
+站点名称、简介、作者和社交链接统一放在 `src/site.config.ts`。
+
+当前主题是 [A Quiet Publication](https://github.com/Liyuk/astro-fourfold)，主题组件位于 `src/themes/quiet-publication/`，`src/theme.ts` 是页面使用的主题入口。Notion 同步与主题目录彼此独立；以后接入其他主题时实现相同的页面组件，再在 `src/theme.ts` 切换导出即可，不需要修改同步 Worker。
+
+主题专属的视觉配置位于 `src/themes/quiet-publication/theme.config.ts`；首页首屏的字号和留白可以直接在这里调整。
+
 Pages 生产环境加密密钥：NOTION_TOKEN（仅文章库只读）、SYNC_KEY（与 Worker PUBLISH_KEY 一致）。
 Worker 位于 workers/notion-webhook，密钥为 SETUP_KEY、PUBLISH_KEY、DEPLOY_HOOK_URL。
 
@@ -65,4 +71,4 @@ NOTION_CLI_SCRIPT 可指向已登录 ntn 入口，在本地显式全量同步；
 配置 NOTION_TOKEN 和 SYNC_KEY 时执行云端同样的增量流程。
 Pages 构建命令 npm run build，输出 dist，分支 main。
 Worker 根目录 workers/notion-webhook，部署命令 npx wrangler deploy。
-站点标题简介 src/consts.ts，样式 src/styles/global.css。
+当前主题样式位于 `src/themes/quiet-publication/styles/`。
