@@ -41,6 +41,8 @@ Worker Durable Object 保存每篇文章最后一次请求的版本及全量请�
 
 当前主题是 [A Quiet Publication](https://github.com/Liyuk/astro-fourfold)，主题组件位于 `src/themes/quiet-publication/`，`src/theme.ts` 是页面使用的主题入口。Notion 同步与主题目录彼此独立；以后接入其他主题时实现相同的页面组件，再在 `src/theme.ts` 切换导出即可，不需要修改同步 Worker。
 
+主题专属的视觉配置位于 `src/themes/quiet-publication/theme.config.ts`；首页首屏的字号和留白可以直接在这里调整。
+
 Pages 生产环境加密密钥：NOTION_TOKEN（仅文章库只读）、SYNC_KEY（与 Worker PUBLISH_KEY 一致）。
 Worker 位于 workers/notion-webhook，密钥为 SETUP_KEY、PUBLISH_KEY、DEPLOY_HOOK_URL。
 

@@ -3,10 +3,17 @@ import { site } from '../../site.config';
 import BaseLayout from './BaseLayout.astro';
 import Icon from './Icon.astro';
 import PostCard from './PostCard.astro';
+import { quietPublicationTheme } from './theme.config';
 const { posts } = Astro.props;
+const heroStyle = [
+  `--hero-spacing:${quietPublicationTheme.hero.spacing}`,
+  `--hero-title-size:${quietPublicationTheme.hero.titleSize}`,
+  `--hero-title-line-height:${quietPublicationTheme.hero.titleLineHeight}`,
+  `--hero-lede-size:${quietPublicationTheme.hero.ledeSize}`,
+].join(';');
 ---
 <BaseLayout>
-  <section class="hero container">
+  <section class="hero container" style={heroStyle}>
     <p class="eyebrow">Personal publication</p>
     <h1>{site.name}</h1>
     <p class="lede">{site.description}</p>
@@ -25,13 +32,13 @@ const { posts } = Astro.props;
   </section>
 </BaseLayout>
 <style>
-  .hero { padding:clamp(4rem,10vw,9rem) 0 5rem; }
-  .hero h1 { font-size:clamp(4rem,15vw,10rem); line-height:.85; margin:.5rem 0 1.5rem; letter-spacing:-.08em; }
-  .lede { font-size:clamp(1.4rem,3vw,2.2rem); max-width:45rem; line-height:1.25; }
+  .hero { padding:var(--hero-spacing); }
+  .hero h1 { font-size:var(--hero-title-size); line-height:var(--hero-title-line-height); margin:.5rem 0 1rem; letter-spacing:-.06em; }
+  .lede { font-size:var(--hero-lede-size); max-width:45rem; line-height:1.35; margin:.5rem 0; }
+  .author { margin-top:1rem; }
   .author, .empty { color:var(--muted); max-width:40rem; }
   .section-heading span { color:var(--accent); font-size:.8rem; font-family:ui-monospace,monospace; }
   .sub { margin-top:2rem; }
   .start { margin-top:5rem; padding:3rem 0; border-block:1px solid var(--line); }
   .start h2 { font-size:clamp(2rem,5vw,4rem); margin:.4rem 0; letter-spacing:-.05em; }
-  @media(max-width:48rem) { .hero { padding-top:4rem; } }
 </style>
