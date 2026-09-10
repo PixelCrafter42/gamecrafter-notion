@@ -7,7 +7,8 @@ const structuredJson = structuredData ? JSON.stringify(structuredData).replace(/
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width" />
 <meta name="description" content={description} />
-<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="icon" href={site.avatar?.src ?? '/favicon.svg'} />
+{site.avatar && <link rel="apple-touch-icon" href={site.avatar.src} />}
 <link rel="canonical" href={url} />
 <meta property="og:title" content={title} />
 <meta property="og:description" content={description} />

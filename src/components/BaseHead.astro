@@ -1,6 +1,7 @@
 ---
 import '../styles/global.css';
 import { SITE_TITLE } from '../consts';
+import { site } from '../site.config';
 interface Props { title: string; description: string; }
 const { title, description } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
@@ -8,7 +9,8 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <meta name="theme-color" content="#f8f7f4" />
-<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="icon" href={site.avatar?.src ?? '/favicon.svg'} />
+{site.avatar && <link rel="apple-touch-icon" href={site.avatar.src} />}
 <link rel="sitemap" href="/sitemap-index.xml" />
 <link rel="alternate" type="application/rss+xml" title={SITE_TITLE} href="/rss.xml" />
 <link rel="canonical" href={canonical} />
